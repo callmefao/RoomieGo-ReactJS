@@ -12,18 +12,55 @@
  */
 
 import { apiClient } from './api-client'
-import type { 
-  Room, 
+import type {
+  Room,
   RoomImage,
-  RoomFilters, 
+  RoomFilters,
   CreateRoomPayload,
   ImageUploadResponse,
+  ImageDeleteResponse,
   Review,
   Favorite,
-  Amenity
+  PendingRoom,
+  PendingRoomsResponse,
 } from '../types/room'
 
 export class RoomsService {
+
+  // ================= ADMIN PENDING ROOMS =================
+
+  /**
+   * Lấy danh sách phòng đang chờ duyệt (Admin)
+   * Matches: GET /api/rooms/admin/pending/
+   */
+  public static async getPendingRooms(): Promise<{ rooms: PendingRoom[]; total: number }> {
+    const response = await apiClient.get<PendingRoomsResponse | PendingRoom[]>(
+      '/api/rooms/admin/pending/',
+      { includeAuth: true },
+    )
+
+    const payload = response.data
+    const rooms = Array.isArray(payload) ? payload : payload.results || []
+    const total = Array.isArray(payload) ? payload.length : payload.count ?? rooms.length
+
+    return { rooms, total }
+  }
+
+  /**
+   * Duyệt phòng đang chờ (Admin)
+   * Matches: POST /api/rooms/{id}/approve/
+   */
+  public static async approvePendingRoom(roomId: number): Promise<void> {
+    await apiClient.post(`/api/rooms/${roomId}/approve/`, {}, { includeAuth: true })
+  }
+
+  /**
+   * Từ chối phòng đang chờ (Admin)
+   * Matches: POST /api/rooms/admin/pending/{id}/reject/
+   */
+  public static async rejectPendingRoom(roomId: number): Promise<void> {
+    await apiClient.post(`/api/rooms/admin/pending/${roomId}/reject/`, {}, { includeAuth: true })
+  }
   
   // ================= ROOMS CRUD =================
   
@@ -31,12 +68,12 @@ export class RoomsService {
    * Get all rooms with optional filtering
    * Matches: GET /api/rooms/?status=1&is_featured=True&min_price=1000000&max_price=3000000
    */
-  public static async getRooms(filters?: RoomFilters): Promise<any> {
+  public static async getRooms(filters?: RoomFilters, options?: { includeAuth?: boolean }): Promise<any> {
     const response = await apiClient.get<any>(
       '/api/rooms/',
       { 
         params: filters,
-        includeAuth: false // Public endpoint
+        includeAuth: options?.includeAuth ?? false // Public endpoint by default
       }
     )
     return response.data
@@ -87,6 +124,21 @@ export class RoomsService {
       formData
     )
     
+    return response.data
+  }
+
+  /**
+   * Delete multiple room images by IDs
+   * Matches: DELETE /api/rooms/images/bulk/
+   */
+  public static async deleteRoomImages(imageIds: number[]): Promise<ImageDeleteResponse> {
+    const response = await apiClient.delete<ImageDeleteResponse>(
+      '/api/rooms/images/bulk/',
+      {
+        includeAuth: true,
+        data: { image_ids: imageIds }
+      }
+    )
     return response.data
   }
 
@@ -143,6 +195,7 @@ export class RoomsService {
     status?: number // 1 for available, 0 for others
     featured?: boolean
     verified?: boolean
+    hasMezzanine?: boolean
     priceRange?: [number, number]
     areaRange?: [number, number]
     maxPeople?: number
@@ -155,6 +208,7 @@ export class RoomsService {
     if (options.status !== undefined) filters.status = options.status
     if (options.featured !== undefined) filters.is_featured = options.featured
     if (options.verified !== undefined) filters.is_verified = options.verified
+  if (options.hasMezzanine !== undefined) filters.has_mezzanine = options.hasMezzanine
     if (options.maxPeople) filters.max_people = options.maxPeople
     if (options.search) filters.search = options.search
 

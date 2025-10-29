@@ -1,5 +1,6 @@
-import type { Room } from "@/types/room"
+import type { Room, RoomAmenityDetail } from "@/types/room"
 import { generateRentalImages, type RentalImages } from "@/lib/utils/image-loader"
+import { convertVietnameseToUrlFriendly } from "@/lib/utils/vietnamese"
 
 // Interface cho RentalItem (dùng trong RentalListings)
 export interface RentalItem {
@@ -17,7 +18,8 @@ export interface RentalData {
   price: string
   address: string
   description: string
-  amenities: string[]
+  amenities?: string[]
+  amenities_detail?: RoomAmenityDetail[]
   contact: {
     phone: string
     zalo: string
@@ -29,6 +31,13 @@ export interface RentalData {
   }
 }
 
+const createAmenityDetails = (names: string[]): RoomAmenityDetail[] =>
+  names.map((name, index) => ({
+    id: index + 1,
+    name,
+    slug: convertVietnameseToUrlFriendly(name),
+  }))
+
 // Mock data cho SuggestedRooms (homepage)
 export const mockRooms: Room[] = [
   {
@@ -37,8 +46,14 @@ export const mockRooms: Room[] = [
     price: 2500000,
     location: "Quận Cái Răng, Cần Thơ",
     area: 25,
-    image: "/rental-images/1/rooms/room-1.jpg",
+  main_image_url: "/rental-images/1/rooms/room-1.jpg",
+  images: [],
+  latitude: "10.0452",
+  longitude: "105.7469",
+  status: 1,
+  has_mezzanine: true,
     amenities: ["Máy lạnh", "WiFi", "Máy giặt"],
+    amenities_detail: createAmenityDetails(["Máy lạnh", "WiFi", "Máy giặt"]),
   },
   {
     id: 2,
@@ -46,8 +61,14 @@ export const mockRooms: Room[] = [
     price: 3000000,
     location: "Ninh Kiều, Cần Thơ",
     area: 30,
-    image: "/rental-images/2/rooms/room-1.jpg",
+  main_image_url: "/rental-images/2/rooms/room-1.jpg",
+  images: [],
+  latitude: "10.0352",
+  longitude: "105.7569",
+  status: 1,
+  has_mezzanine: false,
     amenities: ["Bếp riêng", "Ban công", "An ninh 24/7"],
+    amenities_detail: createAmenityDetails(["Bếp riêng", "Ban công", "An ninh 24/7"]),
   },
   {
     id: 3,
@@ -55,8 +76,14 @@ export const mockRooms: Room[] = [
     price: 2200000,
     location: "Bình Thủy, Cần Thơ",
     area: 20,
-    image: "/rental-images/3/rooms/room-1.jpg",
-    amenities: ["Gần trường học", "Giá rẻ", "Tiện ích đầy đủ"],
+  main_image_url: "/rental-images/3/rooms/room-1.jpg",
+  images: [],
+  latitude: "10.0252",
+  longitude: "105.7669",
+  status: 1,
+  has_mezzanine: true,
+  amenities: ["Gần trường học", "Giá rẻ", "Tiện ích đầy đủ"],
+  amenities_detail: createAmenityDetails(["Gần trường học", "Giá rẻ", "Tiện ích đầy đủ"]),
   },
   {
     id: 4,
@@ -64,8 +91,14 @@ export const mockRooms: Room[] = [
     price: 1800000,
     location: "Ô Môn, Cần Thơ",
     area: 40,
-    image: "/rental-images/4/rooms/room-1.jpg",
-    amenities: ["Hồ bơi", "Gym", "Dọn phòng"],
+  main_image_url: "/rental-images/4/rooms/room-1.jpg",
+  images: [],
+  latitude: "10.0152",
+  longitude: "105.7769",
+  status: 1,
+  has_mezzanine: false,
+  amenities: ["Hồ bơi", "Gym", "Dọn phòng"],
+  amenities_detail: createAmenityDetails(["Hồ bơi", "Gym", "Dọn phòng"]),
   },
   {
     id: 5,
@@ -73,8 +106,14 @@ export const mockRooms: Room[] = [
     price: 2100000,
     location: "Thốt Nốt, Cần Thơ",
     area: 35,
-    image: "/rental-images/5/rooms/room-1.jpg",
-    amenities: ["2 phòng ngủ", "Phòng khách", "Bếp chung"],
+  main_image_url: "/rental-images/5/rooms/room-1.jpg",
+  images: [],
+  latitude: "10.0052",
+  longitude: "105.7869",
+  status: 1,
+  has_mezzanine: true,
+  amenities: ["2 phòng ngủ", "Phòng khách", "Bếp chung"],
+  amenities_detail: createAmenityDetails(["2 phòng ngủ", "Phòng khách", "Bếp chung"]),
   },
   {
     id: 6,
@@ -82,8 +121,14 @@ export const mockRooms: Room[] = [
     price: 2800000,
     location: "Cờ Đỏ, Cần Thơ",
     area: 28,
-    image: "/rental-images/6/rooms/room-1.jpg",
-    amenities: ["Nội thất cao cấp", "View đẹp", "Gần metro"],
+  main_image_url: "/rental-images/6/rooms/room-1.jpg",
+  images: [],
+  latitude: "9.9952",
+  longitude: "105.7969",
+  status: 1,
+  has_mezzanine: false,
+  amenities: ["Nội thất cao cấp", "View đẹp", "Gần metro"],
+  amenities_detail: createAmenityDetails(["Nội thất cao cấp", "View đẹp", "Gần metro"]),
   },
   {
     id: 7,
@@ -91,8 +136,14 @@ export const mockRooms: Room[] = [
     price: 2300000,
     location: "Vĩnh Thạnh, Cần Thơ",
     area: 22,
-    image: "/rental-images/7/rooms/room-1.jpg",
-    amenities: ["Máy lạnh", "Wifi riêng", "Bãi xe rộng"],
+  main_image_url: "/rental-images/7/rooms/room-1.jpg",
+  images: [],
+  latitude: "9.9852",
+  longitude: "105.8069",
+  status: 1,
+  has_mezzanine: true,
+  amenities: ["Máy lạnh", "Wifi riêng", "Bãi xe rộng"],
+  amenities_detail: createAmenityDetails(["Máy lạnh", "Wifi riêng", "Bãi xe rộng"]),
   },
   {
     id: 8,
@@ -100,8 +151,14 @@ export const mockRooms: Room[] = [
     price: 2600000,
     location: "Phong Điền, Cần Thơ",
     area: 32,
-    image: "/rental-images/8/rooms/room-1.jpg",
-    amenities: ["Máy giặt", "Wifi riêng", "An ninh tốt"],
+  main_image_url: "/rental-images/8/rooms/room-1.jpg",
+  images: [],
+  latitude: "9.9752",
+  longitude: "105.8169",
+  status: 1,
+  has_mezzanine: true,
+  amenities: ["Máy giặt", "Wifi riêng", "An ninh tốt"],
+  amenities_detail: createAmenityDetails(["Máy giặt", "Wifi riêng", "An ninh tốt"]),
   },
   {
     id: 9,
@@ -109,8 +166,14 @@ export const mockRooms: Room[] = [
     price: 1900000,
     location: "Thới Lai, Cần Thơ",
     area: 18,
-    image: "/rental-images/9/rooms/room-1.jpg",
-    amenities: ["Giá rẻ", "Gần chợ", "Tiện lợi"],
+  main_image_url: "/rental-images/9/rooms/room-1.jpg",
+  images: [],
+  latitude: "9.9652",
+  longitude: "105.8269",
+  status: 1,
+  has_mezzanine: false,
+  amenities: ["Giá rẻ", "Gần chợ", "Tiện lợi"],
+  amenities_detail: createAmenityDetails(["Giá rẻ", "Gần chợ", "Tiện lợi"]),
   },
   {
     id: 10,
@@ -118,8 +181,14 @@ export const mockRooms: Room[] = [
     price: 2700000,
     location: "Cái Răng, Cần Thơ",
     area: 26,
-    image: "/rental-images/10/rooms/room-1.jpg",
-    amenities: ["Máy lạnh", "Wifi riêng", "Thang máy"],
+  main_image_url: "/rental-images/10/rooms/room-1.jpg",
+  images: [],
+  latitude: "9.9552",
+  longitude: "105.8369",
+  status: 1,
+  has_mezzanine: true,
+  amenities: ["Máy lạnh", "Wifi riêng", "Thang máy"],
+  amenities_detail: createAmenityDetails(["Máy lạnh", "Wifi riêng", "Thang máy"]),
   },
 ]
 
@@ -132,7 +201,7 @@ export const mockRentalItems: RentalItem[] = mockRooms.map((room) => ({
     currency: "VND",
   }).format(room.price),
   address: `123 Đường ${room.location}`,
-  image: room.image,
+  image: room.main_image_url ?? "/images/placeholder-room.jpg",
 }))
 
 // Helper function to create rental data with auto-generated images
@@ -153,7 +222,8 @@ function createRentalData(
     price,
     address,
     description,
-    amenities,
+  amenities,
+  amenities_detail: createAmenityDetails(amenities),
     contact: {
       phone,
       zalo: phone,

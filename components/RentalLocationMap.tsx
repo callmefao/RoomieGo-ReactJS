@@ -109,13 +109,13 @@ export default function RentalLocationMap({ location, address, rentalName }: Ren
             {/* Action buttons */}
             <div className="flex flex-wrap gap-2 mt-3">
               <button 
-                className="text-xs bg-primary/10 text-primary px-3 py-1 rounded-full hover:bg-primary/20 transition-colors"
+                className="text-xs bg-primary/10 text-primary px-3 py-1 rounded-full hover:bg-primary/20 transition-colors cursor-pointer"
                 onClick={() => window.open(`https://www.google.com/maps?q=${location.lat},${location.lng}`, '_blank')}
               >
                 📱 Mở Google Maps
               </button>
               <button 
-                className="text-xs bg-green-500/10 text-green-700 px-3 py-1 rounded-full hover:bg-green-500/20 transition-colors"
+                className="text-xs bg-green-500/10 text-green-700 px-3 py-1 rounded-full hover:bg-green-500/20 transition-colors cursor-pointer"
                 onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${location.lat},${location.lng}`, '_blank')}
               >
                 🧭 Chỉ đường

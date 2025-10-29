@@ -1,15 +1,19 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import MapLocationPicker from "./MapLocationPicker"
 import { createPortal } from "react-dom"
 import { useRouter } from "next/navigation"
+import { amenitiesService, type Amenity } from "@/lib/amenities-service"
+import Image from "next/image"
+import { ChevronDown, Check, Layers } from "lucide-react"
 
 interface FilterState {
   location: {
@@ -21,6 +25,8 @@ interface FilterState {
     min: number
     max: number
   }
+  amenities: number[]
+  hasMezzanine: boolean | null // null = không lọc, true = có gác, false = không có gác
   // targetAudience: string[]
 }
 
@@ -43,9 +49,30 @@ export default function FilterSidebar() {
       min: 500000,
       max: 2500000,
     },
+    amenities: [],
+    hasMezzanine: null,
   })
 
   const [showLocationPicker, setShowLocationPicker] = useState(false)
+  const [availableAmenities, setAvailableAmenities] = useState<Amenity[]>([])
+  const [loadingAmenities, setLoadingAmenities] = useState(true)
+
+  // Fetch amenities on component mount
+  useEffect(() => {
+    const fetchAmenities = async () => {
+      try {
+        setLoadingAmenities(true)
+        const amenities = await amenitiesService.fetchAmenities()
+        setAvailableAmenities(amenities)
+      } catch (error) {
+        console.error('Failed to fetch amenities:', error)
+      } finally {
+        setLoadingAmenities(false)
+      }
+    }
+
+    fetchAmenities()
+  }, [])
 
   const handleLocationSelect = (location: { address: string; coordinates: [number, number]; radius: number }) => {
     setFilters((prev) => ({
@@ -72,6 +99,22 @@ export default function FilterSidebar() {
   //   }))
   // }
 
+  const handleAmenityChange = (amenityId: number, checked: boolean) => {
+    setFilters((prev) => ({
+      ...prev,
+      amenities: checked
+        ? [...prev.amenities, amenityId]
+        : prev.amenities.filter((id) => id !== amenityId),
+    }))
+  }
+
+  const handleMezzanineChange = (value: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      hasMezzanine: value === "all" ? null : value === "true",
+    }))
+  }
+
   const handleApplyFilters = () => {
     console.log("🔍 FilterSidebar applying filters:", filters)
     
@@ -91,6 +134,18 @@ export default function FilterSidebar() {
       params.append('min_price', filters.priceRange.min.toString())
       params.append('max_price', filters.priceRange.max.toString())
       console.log(`➕ Added price params: min=${filters.priceRange.min}, max=${filters.priceRange.max}`)
+    }
+
+    // Add amenities filter
+    if (filters.amenities && filters.amenities.length > 0) {
+      params.append('amenities', filters.amenities.join(','))
+      console.log(`➕ Added amenities params: ${filters.amenities.join(',')}`)
+    }
+
+    // Add mezzanine filter
+    if (filters.hasMezzanine !== null) {
+      params.append('has_mezzanine', filters.hasMezzanine.toString())
+      console.log(`➕ Added has_mezzanine param: ${filters.hasMezzanine}`)
     }
     
     // Navigate to rental listings with filters
@@ -112,6 +167,8 @@ export default function FilterSidebar() {
         min: 500000,
         max: 2500000,
       },
+      amenities: [],
+      hasMezzanine: null,
     })
   }
 
@@ -125,11 +182,11 @@ export default function FilterSidebar() {
 
   return (
     <>
-      <Card className="w-full hover:shadow-lg transition-shadow duration-300">
-        <CardHeader className="cursor-default">
+      <Card className="w-full hover:shadow-lg transition-shadow duration-300 flex flex-col max-h-[calc(100vh-120px)]">
+        <CardHeader className="cursor-default flex-shrink-0">
           <CardTitle className="text-xl font-bold">Bộ lọc tìm kiếm</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 flex-1 overflow-y-auto">
           {/* Address Filter */}
           <div className="space-y-3 p-3 rounded-lg hover:bg-muted/30 transition-colors duration-200">
             <Label className="text-base font-semibold cursor-default">Địa chỉ</Label>
@@ -200,6 +257,132 @@ export default function FilterSidebar() {
             </div>
           </div>
 
+          {/* Amenities Filter */}
+          <div className="space-y-3 p-3 rounded-lg hover:bg-muted/30 transition-colors duration-200">
+            <Label className="text-base font-semibold cursor-default">Tiện ích</Label>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-between cursor-pointer hover:border-primary/50 transition-colors"
+                >
+                  <span className="text-sm">
+                    {filters.amenities.length > 0
+                      ? `Đã chọn ${filters.amenities.length} tiện ích`
+                      : "Chọn tiện ích"}
+                  </span>
+                  <ChevronDown className="h-4 w-4 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-64 max-h-80 overflow-y-auto">
+                {loadingAmenities ? (
+                  <div className="space-y-2 p-2">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="h-10 bg-muted/50 rounded animate-pulse" />
+                    ))}
+                  </div>
+                ) : availableAmenities.length > 0 ? (
+                  availableAmenities.map((amenity) => (
+                    <DropdownMenuItem
+                      key={amenity.id}
+                      className="cursor-pointer"
+                      onSelect={(e) => {
+                        e.preventDefault()
+                        handleAmenityChange(amenity.id, !filters.amenities.includes(amenity.id))
+                      }}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center space-x-2">
+                          {amenity.icon_url && (
+                            <Image
+                              src={amenity.icon_url}
+                              alt={amenity.name}
+                              width={20}
+                              height={20}
+                              className="h-5 w-5 object-contain"
+                              unoptimized
+                            />
+                          )}
+                          <span className="text-sm">{amenity.name}</span>
+                        </div>
+                        {filters.amenities.includes(amenity.id) && (
+                          <Check className="h-4 w-4 text-primary" />
+                        )}
+                      </div>
+                    </DropdownMenuItem>
+                  ))
+                ) : (
+                  <div className="p-4 text-sm text-muted-foreground italic text-center">
+                    Không có tiện ích nào
+                  </div>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {/* Mezzanine Filter */}
+          <div className="space-y-3 p-3 rounded-lg hover:bg-muted/30 transition-colors duration-200">
+            <Label className="text-base font-semibold cursor-default">Gác lửng</Label>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-between cursor-pointer hover:border-primary/50 transition-colors"
+                >
+                  <span className="flex items-center gap-2 text-sm">
+                    {filters.hasMezzanine === null && "Tất cả"}
+                    {filters.hasMezzanine === true && (
+                      <>
+                        <Layers className="h-4 w-4" />
+                        Có gác lửng
+                      </>
+                    )}
+                    {filters.hasMezzanine === false && "Không có gác lửng"}
+                  </span>
+                  <ChevronDown className="h-4 w-4 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onSelect={() => handleMezzanineChange("all")}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span className="text-sm">Tất cả</span>
+                    {filters.hasMezzanine === null && (
+                      <Check className="h-4 w-4 text-primary" />
+                    )}
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onSelect={() => handleMezzanineChange("true")}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span className="flex items-center gap-2 text-sm">
+                      <Layers className="h-4 w-4" />
+                      Có gác lửng
+                    </span>
+                    {filters.hasMezzanine === true && (
+                      <Check className="h-4 w-4 text-primary" />
+                    )}
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onSelect={() => handleMezzanineChange("false")}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span className="text-sm">Không có gác lửng</span>
+                    {filters.hasMezzanine === false && (
+                      <Check className="h-4 w-4 text-primary" />
+                    )}
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
           {/* Target Audience Filter - Commented out as requested */}
           {/* 
           <div className="space-y-3">
@@ -220,9 +403,11 @@ export default function FilterSidebar() {
             </div>
           </div>
           */}
+        </CardContent>
 
-          {/* Action Buttons */}
-          <div className="space-y-2 pt-4">
+        {/* Action Buttons - Sticky at bottom */}
+        <div className="border-t bg-background p-4 flex-shrink-0">
+          <div className="space-y-2">
             <Button 
               onClick={handleApplyFilters} 
               className="w-full cursor-pointer hover:scale-105 hover:shadow-lg transition-all duration-300 active:scale-95 bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-600 hover:from-blue-600 hover:via-cyan-600 hover:to-blue-700"
@@ -237,7 +422,7 @@ export default function FilterSidebar() {
               Xóa bộ lọc
             </Button>
           </div>
-        </CardContent>
+        </div>
       </Card>
 
       {showLocationPicker &&

@@ -2,28 +2,24 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { MapPin, Sparkles, Square } from "lucide-react"
+import { Layers, MapPin, Sparkles, Square } from "lucide-react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
+import { memo } from "react"
 import type { Room } from "@/types/room"
 import { generateRentalSlug } from "@/lib/utils/url"
 import { cn } from "@/lib/utils"
+import { formatAmenities } from "@/utils/room-helpers"
 
 interface RoomCardProps {
   room: Room
   highlighted?: boolean
 }
 
-export default function RoomCard({ room, highlighted = false }: RoomCardProps) {
+function RoomCard({ room, highlighted = false }: RoomCardProps) {
   const router = useRouter()
 
   const getMainImage = (room: Room): string => {
-    // Debug log
-    console.log(`🖼️ Getting image for room ${room.id}:`, {
-      main_image_url: room.main_image_url,
-      images_count: room.images?.length || 0,
-      first_image: room.images?.[0]
-    })
-    
     // Ưu tiên main_image_url từ backend
     if (room.main_image_url) {
       return room.main_image_url
@@ -51,6 +47,8 @@ export default function RoomCard({ room, highlighted = false }: RoomCardProps) {
     router.push(`/${slug}`)
   }
 
+  const amenities = formatAmenities(room.amenities_detail ?? room.amenities)
+
   return (
     <Card 
       className={cn(
@@ -73,14 +71,15 @@ export default function RoomCard({ room, highlighted = false }: RoomCardProps) {
       )}
 
       <div className="aspect-video relative overflow-hidden">
-        <img
+        <Image
           src={getMainImage(room)}
           alt={room.title}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          onError={(e) => {
-            console.log(`❌ Image load failed for room ${room.id}, using placeholder`)
-            e.currentTarget.src = "/placeholder.svg"
-          }}
+          fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          priority={highlighted}
+          quality={75}
+          unoptimized
         />
       </div>
 
@@ -94,23 +93,69 @@ export default function RoomCard({ room, highlighted = false }: RoomCardProps) {
           <span className="text-sm">{room.location}</span>
         </div>
 
-        <div className="flex items-center text-muted-foreground mb-3">
-          <Square className="h-4 w-4 mr-1" />
-          <span className="text-sm">{room.area}m²</span>
-        </div>
-
-        <div className="flex flex-wrap gap-1 mb-3">
-          {room.amenities?.slice(0, 2).map((amenity, index) => (
-            <Badge key={index} variant="secondary" className="text-xs">
-              {amenity}
-            </Badge>
-          ))}
-          {(room.amenities?.length || 0) > 2 && (
-            <Badge variant="secondary" className="text-xs">
-              +{(room.amenities?.length || 0) - 2}
+        <div className="flex items-center gap-3 text-muted-foreground mb-3">
+          <div className="flex items-center">
+            <Square className="h-4 w-4 mr-1" />
+            <span className="text-sm">{room.area}m²</span>
+          </div>
+          {room.has_mezzanine && (
+            <Badge variant="outline" className="inline-flex items-center gap-1 border-blue-200 text-blue-700 bg-blue-50 text-xs">
+              <Layers className="h-3.5 w-3.5" />
+              Có gác
             </Badge>
           )}
         </div>
+
+        <div className="flex flex-wrap gap-1 mb-3">
+          {amenities.slice(0, 2).map((amenity, index) => (
+            <Badge
+              key={amenity.id ?? amenity.slug ?? `${amenity.name}-${index}`}
+              variant="secondary"
+              className="flex items-center gap-1 text-xs"
+            >
+              {amenity.icon_url ? (
+                <Image
+                  src={amenity.icon_url}
+                  alt={amenity.name}
+                  width={16}
+                  height={16}
+                  className="h-4 w-4"
+                  unoptimized
+                />
+              ) : null}
+              {amenity.name}
+            </Badge>
+          ))}
+          {amenities.length > 2 && (
+            <Badge variant="secondary" className="text-xs">
+              +{amenities.length - 2}
+            </Badge>
+          )}
+        </div>
+
+        {/* Utility costs */}
+        {(room.deposit || room.electricity_price || room.water_price) && (
+          <div className="flex flex-wrap gap-2 mb-3 text-xs text-muted-foreground">
+            {room.deposit && (
+              <span className="flex items-center gap-1">
+                <span className="text-amber-600">💰</span>
+                Cọc: {formatPrice(room.deposit)}
+              </span>
+            )}
+            {room.electricity_price && (
+              <span className="flex items-center gap-1">
+                <span className="text-yellow-600">⚡</span>
+                Điện: {formatPrice(room.electricity_price)}/số
+              </span>
+            )}
+            {room.water_price && (
+              <span className="flex items-center gap-1">
+                <span className="text-blue-600">💧</span>
+                Nước: {formatPrice(room.water_price)}/m³
+              </span>
+            )}
+          </div>
+        )}
 
         <div className={cn(
           "text-xl font-bold",
@@ -122,3 +167,9 @@ export default function RoomCard({ room, highlighted = false }: RoomCardProps) {
     </Card>
   )
 }
+
+// Memoize component để tránh re-render khi Swiper slide
+export default memo(RoomCard, (prevProps, nextProps) => {
+  // Chỉ re-render khi room.id thay đổi
+  return prevProps.room.id === nextProps.room.id && prevProps.highlighted === nextProps.highlighted
+})

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "next/navigation"
-import Header from "@/components/Header"
+// import Header from "@/components/Header"
 import RentalListings from "@/components/RentalListings"
 import FilterSidebar from "@/components/FilterSidebar"
 import Footer from "@/components/Footer"
@@ -24,6 +24,8 @@ export default function RentalListingsPage() {
     const maxPrice = typeof currentFilters.max_price === "number" ? currentFilters.max_price : undefined
     const radius = typeof currentFilters.radius === "number" ? currentFilters.radius : undefined
     const search = typeof currentFilters.search === "string" && currentFilters.search.trim() ? currentFilters.search.trim() : undefined
+    const amenities = typeof currentFilters.amenities === "string" && currentFilters.amenities.trim() ? currentFilters.amenities.trim() : undefined
+    const hasMezzanine = currentFilters.has_mezzanine
 
     if (minPrice !== undefined && maxPrice !== undefined) {
       highlights.push(`Khoảng giá: ${currencyFormatter.format(minPrice)} - ${currencyFormatter.format(maxPrice)}`)
@@ -38,7 +40,16 @@ export default function RentalListingsPage() {
     }
 
     if (search) {
-      highlights.push(`Từ khóa: “${search}”`)
+      highlights.push(`Từ khóa: "${search}"`)
+    }
+
+    if (amenities) {
+      const amenityCount = amenities.split(',').length
+      highlights.push(`${amenityCount} tiện ích`)
+    }
+
+    if (hasMezzanine !== undefined) {
+      highlights.push(hasMezzanine ? 'Có gác lửng' : 'Không có gác lửng')
     }
 
     return highlights
@@ -52,6 +63,8 @@ export default function RentalListingsPage() {
     latitude: searchParams.get('latitude') ? parseFloat(searchParams.get('latitude')!) : undefined,
     longitude: searchParams.get('longitude') ? parseFloat(searchParams.get('longitude')!) : undefined,
     radius: searchParams.get('radius') ? parseFloat(searchParams.get('radius')!) : undefined,
+    amenities: searchParams.get('amenities') || undefined,
+    has_mezzanine: searchParams.get('has_mezzanine') ? searchParams.get('has_mezzanine') === 'true' : undefined,
   }
   
   // Remove undefined values
@@ -66,10 +79,9 @@ export default function RentalListingsPage() {
   }, [searchParams])
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8 text-center">
+    <div className="space-y-16">
+      <section className="space-y-10">
+        <div className="text-center">
           <h1 className="text-4xl font-bold text-foreground mb-4">Tìm chỗ ở ưng ý cho bạn</h1>
           {hasFilters ? (
             <div className="flex flex-col items-center gap-3">
@@ -97,9 +109,9 @@ export default function RentalListingsPage() {
           )}
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-8">
+        <div className="flex flex-col gap-8 lg:flex-row">
           {/* Left sidebar for filters */}
-          <aside className="lg:w-80 lg:sticky lg:top-8 lg:h-fit">
+          <aside className="lg:sticky lg:top-8 lg:h-fit lg:w-80">
             <FilterSidebar />
           </aside>
 
@@ -108,7 +120,7 @@ export default function RentalListingsPage() {
             <RentalListings initialFilters={currentFilters} key={JSON.stringify(currentFilters)} />
           </div>
         </div>
-      </main>
+      </section>
       <Footer />
     </div>
   )

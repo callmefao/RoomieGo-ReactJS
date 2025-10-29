@@ -104,7 +104,7 @@ export function useRooms(filters?: RoomFilters): UseRoomsResult {
  * Hook to fetch featured rooms
  */
 export function useFeaturedRooms() {
-  const filters: RoomFilters = { is_featured: true, status: 'available' }
+  const filters: RoomFilters = { is_featured: true, status: 1 }
   return useRooms(filters)
 }
 
@@ -336,6 +336,7 @@ export function useRoomFilters() {
     status?: 'available' | 'rented' | 'maintenance' | 'pending'
     featured?: boolean
     verified?: boolean
+    hasMezzanine?: boolean
     priceRange?: [number, number]
     areaRange?: [number, number]
     maxPeople?: number
@@ -343,7 +344,23 @@ export function useRoomFilters() {
     sortBy?: 'price' | 'area' | 'date'
     sortOrder?: 'asc' | 'desc'
   }) => {
-    return RoomsService.buildFilters(options)
+    const statusMap: Record<string, number | undefined> = {
+      available: 1,
+      rented: 0,
+    }
+
+    return RoomsService.buildFilters({
+      status: options.status ? statusMap[options.status] : undefined,
+      featured: options.featured,
+      verified: options.verified,
+      hasMezzanine: options.hasMezzanine,
+      priceRange: options.priceRange,
+      areaRange: options.areaRange,
+      maxPeople: options.maxPeople,
+      search: options.search,
+      sortBy: options.sortBy,
+      sortOrder: options.sortOrder,
+    })
   }, [])
 }
 

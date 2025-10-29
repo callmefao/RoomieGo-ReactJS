@@ -2,11 +2,15 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { MapPin, Phone, Mail } from "lucide-react"
+import MainLayout from "@/components/layout/MainLayout"
 
 export default function Footer() {
   return (
-    <footer className="bg-muted/30 border-t border-border mt-16">
-      <div className="container mx-auto px-4 py-12">
+    <footer
+      className="relative left-1/2 w-screen -translate-x-1/2 border-t border-border bg-muted/30"
+      role="contentinfo"
+    >
+      <MainLayout className="py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Company Info */}
           <div className="space-y-4">
@@ -90,7 +94,7 @@ export default function Footer() {
             </div>
           </div>
         </div>
-      </div>
+      </MainLayout>
     </footer>
   )
 }

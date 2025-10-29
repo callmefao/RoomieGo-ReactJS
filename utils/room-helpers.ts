@@ -3,7 +3,25 @@
  * Các helper functions cho Room data từ API
  */
 
-import { Room, RoomImage } from "@/types/room"
+import type { Room, RoomAmenityDetail, RoomImage } from "@/types/room"
+
+/**
+ * Chuẩn hóa slug để dùng làm key nhất quán
+ */
+function normalizeAmenitySlug(value?: string | null): string | undefined {
+  if (!value) {
+    return undefined
+  }
+
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    || undefined
+}
 
 /**
  * Map amenities keys từ API thành display names tiếng Việt
@@ -49,14 +67,53 @@ export const AMENITY_DISPLAY_NAMES: Record<string, string> = {
 }
 
 /**
- * Format amenities từ API keys thành display names
+ * Chuẩn hóa danh sách tiện ích từ cả định dạng cũ (string[]) và mới (object[])
  */
-export function formatAmenities(amenities: string[] | undefined): string[] {
+export function formatAmenities(
+  amenities: Array<string | RoomAmenityDetail | null | undefined> | undefined
+): RoomAmenityDetail[] {
   if (!amenities) return []
-  
-  return amenities.map(amenity => 
-    AMENITY_DISPLAY_NAMES[amenity] || amenity
-  )
+
+  const seenKeys = new Set<string>()
+
+  return amenities.reduce<RoomAmenityDetail[]>((acc, amenity, index) => {
+    if (!amenity) {
+      return acc
+    }
+
+    if (typeof amenity === "string") {
+      const slug = normalizeAmenitySlug(amenity) ?? amenity
+      const displayName = AMENITY_DISPLAY_NAMES[slug] || AMENITY_DISPLAY_NAMES[amenity] || amenity
+      const dedupeKey = `slug:${slug}`
+
+      if (!seenKeys.has(dedupeKey)) {
+        seenKeys.add(dedupeKey)
+        acc.push({
+          name: displayName,
+          slug,
+        })
+      }
+      return acc
+    }
+
+  const normalizedSlug = normalizeAmenitySlug(amenity.slug) ?? normalizeAmenitySlug(amenity.name)
+    const fallbackName = normalizedSlug ? AMENITY_DISPLAY_NAMES[normalizedSlug] || normalizedSlug : undefined
+    const displayName = amenity.name || fallbackName || `Tiện ích ${index + 1}`
+    const iconUrl = amenity.icon_url ?? amenity.icon
+    const dedupeKey = amenity.id ? `id:${amenity.id}` : normalizedSlug ? `slug:${normalizedSlug}` : `name:${displayName}`
+
+    if (!seenKeys.has(dedupeKey)) {
+      seenKeys.add(dedupeKey)
+      acc.push({
+        ...amenity,
+        name: displayName,
+        icon_url: iconUrl,
+        slug: normalizedSlug,
+      })
+    }
+
+    return acc
+  }, [])
 }
 
 /**

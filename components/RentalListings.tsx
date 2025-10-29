@@ -10,6 +10,7 @@ import { useRooms } from "@/hooks/useRooms"
 import RoomsService from "@/lib/rooms-service"
 import { generateRentalSlug } from "@/lib/utils/url"
 import type { Room, RoomFilters } from "@/types/room"
+import { formatAmenities } from "@/utils/room-helpers"
 
 interface RentalListingsProps {
   initialFilters?: Record<string, any>
@@ -235,7 +236,10 @@ export default function RentalListings({ initialFilters, filters }: RentalListin
   return (
     <div className="space-y-6">
       <div className="space-y-4">
-        {currentItems.map((room) => (
+        {currentItems.map((room) => {
+          const amenities = formatAmenities(room.amenities_detail ?? room.amenities)
+
+          return (
           <Card 
             key={room.id} 
             className="w-full cursor-pointer group hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/50 border hover:border-blue-200"
@@ -310,23 +314,73 @@ export default function RentalListings({ initialFilters, filters }: RentalListin
                       <Square className="w-4 h-4" />
                       <span>{room.area}m²</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Users className="w-4 h-4" />
-                      <span>Tối đa {room.max_people} người</span>
-                    </div>
+                    {room.max_people && (
+                      <div className="flex items-center gap-1">
+                        <Users className="w-4 h-4" />
+                        <span>Tối đa {room.max_people} người</span>
+                      </div>
+                    )}
+                    {room.has_mezzanine && (
+                      <div className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-1 text-xs text-blue-700 border border-blue-200">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                        <span className="font-medium">Có gác</span>
+                      </div>
+                    )}
                   </div>
 
+                  {/* Utility costs */}
+                  {(room.deposit || room.electricity_price || room.water_price) && (
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground sm:text-sm border-t pt-3">
+                      {room.deposit && (
+                        <div className="flex items-center gap-1">
+                          <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span className="font-medium text-amber-700">Cọc: {RoomsService.formatPrice(room.deposit)}</span>
+                        </div>
+                      )}
+                      {room.electricity_price && (
+                        <div className="flex items-center gap-1">
+                          <svg className="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                          <span>Điện: {RoomsService.formatPrice(room.electricity_price)}/kWh</span>
+                        </div>
+                      )}
+                      {room.water_price && (
+                        <div className="flex items-center gap-1">
+                          <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span>Nước: {RoomsService.formatPrice(room.water_price)}/m³</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Amenities preview */}
-                  {room.amenities && room.amenities.length > 0 && (
+                  {amenities.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-2">
-                      {room.amenities.slice(0, 3).map((amenity, index) => (
-                        <span key={index} className="rounded-full bg-blue-100 px-2 py-1 text-xs text-blue-800">
-                          {amenity}
+                      {amenities.slice(0, 3).map((amenity, index) => (
+                        <span
+                          key={amenity.id ?? amenity.slug ?? `${amenity.name}-${index}`}
+                          className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-1 text-xs text-blue-800"
+                        >
+                          {amenity.icon_url ? (
+                            <img
+                              src={amenity.icon_url}
+                              alt={amenity.name}
+                              className="h-4 w-4"
+                            />
+                          ) : null}
+                          {amenity.name}
                         </span>
                       ))}
-                      {room.amenities.length > 3 && (
+                      {amenities.length > 3 && (
                         <span className="text-xs text-muted-foreground">
-                          +{room.amenities.length - 3} tiện ích khác
+                          +{amenities.length - 3} tiện ích khác
                         </span>
                       )}
                     </div>
@@ -335,7 +389,8 @@ export default function RentalListings({ initialFilters, filters }: RentalListin
               </div>
             </CardContent>
           </Card>
-        ))}
+        )
+      })}
       </div>
 
       {totalPages > 1 && (

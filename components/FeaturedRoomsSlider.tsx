@@ -60,9 +60,9 @@ export default function FeaturedRoomsSlider() {
   }
 
   const Wrapper = ({ children }: { children: ReactNode }) => (
-    <section className="relative py-16">
-      <div className="absolute inset-x-0 top-8 -z-10 mx-auto h-72 max-w-5xl rounded-full bg-blue-100/40 blur-3xl" aria-hidden />
-  <div className="relative overflow-hidden rounded-[32px] border border-white/60 bg-white/80 p-6 shadow-[0_35px_120px_-60px_rgba(14,165,233,0.8)] backdrop-blur-xl sm:p-10 md:overflow-visible">
+    <section className="relative w-full py-16">
+      <div className="absolute inset-x-0 top-8 -z-10 mx-auto h-72 w-full max-w-none rounded-full bg-blue-100/40 blur-3xl" aria-hidden />
+      <div className="relative w-full overflow-hidden rounded-[32px] border border-white/60 bg-white/80 p-6 shadow-[0_35px_120px_-60px_rgba(14,165,233,0.8)] backdrop-blur-xl sm:p-10 md:overflow-visible">
         <div className="pointer-events-none absolute -left-28 -top-32 h-72 w-72 rounded-full bg-gradient-to-br from-blue-100 via-cyan-100 to-transparent blur-2xl" aria-hidden />
         <div className="pointer-events-none absolute -right-24 top-1/3 h-64 w-64 rounded-full bg-gradient-to-r from-cyan-100 via-blue-100 to-transparent blur-2xl" aria-hidden />
         <div className="relative">
@@ -164,8 +164,12 @@ export default function FeaturedRoomsSlider() {
           autoplay={{
             delay: 4000,
             disableOnInteraction: false,
+            pauseOnMouseEnter: true,
           }}
-          rewind={rooms.length > 1}
+          loop={false}
+          watchSlidesProgress={true}
+          observer={true}
+          observeParents={true}
           breakpoints={{
             640: {
               slidesPerView: 2,
@@ -177,7 +181,7 @@ export default function FeaturedRoomsSlider() {
           className="featured-rooms-swiper mb-8"
         >
           {rooms.map((room) => (
-            <SwiperSlide key={room.id}>
+            <SwiperSlide key={`room-${room.id}`}>
               <RoomCard room={room} highlighted />
             </SwiperSlide>
           ))}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
@@ -11,6 +11,8 @@ import { Phone, MessageCircle, MapPin, Wifi, Snowflake, Shirt, Star, Send, X, Ch
 import RentalLocationMap from "./RentalLocationMap"
 import DynamicImageGallery from "./DynamicImageGallery"
 import PanoramaViewer from "./PanoramaViewer"
+import { formatAmenities } from "@/utils/room-helpers"
+import type { RoomAmenityDetail } from "@/types/room"
 
 interface RentalData {
   id: string
@@ -18,7 +20,8 @@ interface RentalData {
   price: string
   address: string
   description: string
-  amenities: string[]
+  amenities?: string[]
+  amenities_detail?: RoomAmenityDetail[]
   contact: {
     phone: string
     zalo: string
@@ -142,10 +145,18 @@ export default function RentalDetailContent({ rental }: RentalDetailContentProps
     loadAvailableImages()
   }, [selectedImageCategory, rental.id])
 
-  const amenityIcons = {
+  const amenities = useMemo(
+    () => formatAmenities(rental.amenities_detail ?? rental.amenities),
+    [rental.amenities_detail, rental.amenities],
+  )
+
+  const amenityIcons: Record<string, JSX.Element> = {
     "Máy lạnh": <Snowflake className="h-5 w-5" />,
+    "air_conditioner": <Snowflake className="h-5 w-5" />,
     "Máy giặt": <Shirt className="h-5 w-5" />,
+    washer: <Shirt className="h-5 w-5" />,
     "Wifi riêng": <Wifi className="h-5 w-5" />,
+    wifi: <Wifi className="h-5 w-5" />,
   }
 
   const handleContact = () => {
@@ -301,18 +312,39 @@ export default function RentalDetailContent({ rental }: RentalDetailContentProps
           <CardTitle>Tiện nghi</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {rental.amenities.map((amenity, index) => (
-              <div key={index} className="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg">
-                <div className="text-primary">
-                  {amenityIcons[amenity as keyof typeof amenityIcons] || (
-                    <div className="w-5 h-5 bg-primary rounded-full" />
-                  )}
-                </div>
-                <span className="font-medium text-foreground">{amenity}</span>
-              </div>
-            ))}
-          </div>
+          {amenities.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {amenities.map((amenity, index) => {
+                const iconKey = amenity.slug ?? amenity.name
+                const fallbackIcon = amenityIcons[iconKey] || amenityIcons[amenity.name]
+
+                return (
+                  <div
+                    key={amenity.id ?? amenity.slug ?? `${amenity.name}-${index}`}
+                    className="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg"
+                  >
+                    <div className="text-primary">
+                      {amenity.icon_url ? (
+                        <Image
+                          src={amenity.icon_url}
+                          alt={amenity.name}
+                          width={20}
+                          height={20}
+                          className="h-5 w-5 object-contain"
+                          unoptimized
+                        />
+                      ) : (
+                        fallbackIcon ?? <div className="h-5 w-5 rounded-full bg-primary" />
+                      )}
+                    </div>
+                    <span className="font-medium text-foreground">{amenity.name}</span>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Chưa cập nhật danh sách tiện nghi.</p>
+          )}
         </CardContent>
       </Card>
 

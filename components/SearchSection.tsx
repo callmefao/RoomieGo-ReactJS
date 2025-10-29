@@ -46,7 +46,7 @@ export default function SearchSection() {
   }
 
   return (
-  <section className="text-center py-12 bg-background rounded-2xl">
+    <section className="w-full rounded-3xl bg-background/95 px-6 py-12 text-center shadow-[0_40px_120px_-60px_rgba(14,165,233,0.35)] backdrop-blur">
       <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 via-blue-700 to-cyan-600 bg-clip-text text-transparent mb-8 text-balance">Hãy tìm kiếm căn trọ ưng ý cho bạn</h1>
 
       {/* Temporarily commented out search input box

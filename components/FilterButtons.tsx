@@ -1,12 +1,17 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { createPortal } from "react-dom"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import { MapPin, DollarSign, Users, ChevronDown, Map } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { MapPin, DollarSign, Users, ChevronDown, Map, Sparkles, Layers } from "lucide-react"
 import MapLocationPicker from "./MapLocationPicker"
 import { canthoUniversities } from "@/data/universities"
 import { cn } from "@/lib/utils"
+import { amenitiesService, type Amenity } from "@/lib/amenities-service"
+import Image from "next/image"
 
 // Helper function to convert price range to numbers
 function parsePriceRange(priceText: string): { min_price?: number, max_price?: number } {
@@ -90,6 +95,18 @@ const filters = [
     icon: DollarSign,
     placeholder: "Chọn mức giá",
   },
+  {
+    id: "amenities",
+    label: "Tiện ích",
+    icon: Sparkles,
+    placeholder: "Chọn tiện ích",
+  },
+  {
+    id: "mezzanine",
+    label: "Gác lửng",
+    icon: Layers,
+    placeholder: "Chọn gác lửng",
+  },
   // {
   //   id: "target",
   //   label: "Đối tượng",
@@ -104,6 +121,10 @@ interface FilterButtonsProps {
 
 export default function FilterButtons({ onFiltersChange }: FilterButtonsProps) {
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string>>({})
+  const [selectedAmenities, setSelectedAmenities] = useState<number[]>([])
+  const [selectedMezzanine, setSelectedMezzanine] = useState<boolean | null>(null)
+  const [availableAmenities, setAvailableAmenities] = useState<Amenity[]>([])
+  const [loadingAmenities, setLoadingAmenities] = useState(true)
   const [selectedLocation, setSelectedLocation] = useState<{
     address: string
     lat: number
@@ -112,10 +133,29 @@ export default function FilterButtons({ onFiltersChange }: FilterButtonsProps) {
   } | null>(null)
   const [showMapPicker, setShowMapPicker] = useState(false)
 
+  // Fetch amenities on component mount
+  useEffect(() => {
+    const fetchAmenities = async () => {
+      try {
+        setLoadingAmenities(true)
+        const amenities = await amenitiesService.fetchAmenities()
+        setAvailableAmenities(amenities)
+      } catch (error) {
+        console.error('Failed to fetch amenities:', error)
+      } finally {
+        setLoadingAmenities(false)
+      }
+    }
+
+    fetchAmenities()
+  }, [])
+
   // Build API filters from given selections (or current state)
-  const buildApiFilters = (customFilters?: Record<string, string>, customLocation?: typeof selectedLocation) => {
+  const buildApiFilters = (customFilters?: Record<string, string>, customLocation?: typeof selectedLocation, customAmenities?: number[], customMezzanine?: boolean | null) => {
     const filtersToUse = customFilters || selectedFilters
     const locationToUse = customLocation !== undefined ? customLocation : selectedLocation
+    const amenitiesToUse = customAmenities !== undefined ? customAmenities : selectedAmenities
+    const mezzanineToUse = customMezzanine !== undefined ? customMezzanine : selectedMezzanine
     const apiFilters: Record<string, any> = {}
     
     // Price filters
@@ -133,6 +173,16 @@ export default function FilterButtons({ onFiltersChange }: FilterButtonsProps) {
       // University location filter
       const locationFilter = parseUniversityLocation(filtersToUse.address)
       Object.assign(apiFilters, locationFilter)
+    }
+
+    // Amenities filter
+    if (amenitiesToUse && amenitiesToUse.length > 0) {
+      apiFilters.amenities = amenitiesToUse.join(',')
+    }
+
+    // Mezzanine filter
+    if (mezzanineToUse !== null) {
+      apiFilters.has_mezzanine = mezzanineToUse
     }
     
     return apiFilters
@@ -205,14 +255,69 @@ export default function FilterButtons({ onFiltersChange }: FilterButtonsProps) {
       return newFilters
     })
     const newLocation = filterId === "address" ? null : selectedLocation
+    const newAmenities = filterId === "amenities" ? [] : selectedAmenities
+    const newMezzanine = filterId === "mezzanine" ? null : selectedMezzanine
+    
     if (filterId === "address") {
       setSelectedLocation(null)
     }
+    if (filterId === "amenities") {
+      setSelectedAmenities([])
+    }
+    if (filterId === "mezzanine") {
+      setSelectedMezzanine(null)
+    }
+    
     // Notify parent component with updated filters
     setTimeout(() => {
       const updatedFilters = { ...selectedFilters }
       delete updatedFilters[filterId]
-      const apiFilters = buildApiFilters(updatedFilters, newLocation)
+      const apiFilters = buildApiFilters(updatedFilters, newLocation, newAmenities, newMezzanine)
+      if (onFiltersChange) {
+        onFiltersChange(apiFilters)
+      }
+    }, 0)
+  }
+
+  const handleAmenityToggle = (amenityId: number) => {
+    setSelectedAmenities((prev) => {
+      const newAmenities = prev.includes(amenityId)
+        ? prev.filter((id) => id !== amenityId)
+        : [...prev, amenityId]
+      
+      // Notify parent component with updated amenities
+      setTimeout(() => {
+        const apiFilters = buildApiFilters(undefined, undefined, newAmenities)
+        if (onFiltersChange) {
+          onFiltersChange(apiFilters)
+        }
+      }, 0)
+      
+      return newAmenities
+    })
+  }
+
+  const handleMezzanineChange = (value: string) => {
+    const newMezzanine = value === "all" ? null : value === "true"
+    setSelectedMezzanine(newMezzanine)
+    
+    // Update filter display text
+    if (value === "all") {
+      setSelectedFilters((prev) => {
+        const updated = { ...prev }
+        delete updated.mezzanine
+        return updated
+      })
+    } else {
+      setSelectedFilters((prev) => ({
+        ...prev,
+        mezzanine: value === "true" ? "Có gác lửng" : "Không có gác lửng"
+      }))
+    }
+
+    // Notify parent component
+    setTimeout(() => {
+      const apiFilters = buildApiFilters(undefined, undefined, undefined, newMezzanine)
       if (onFiltersChange) {
         onFiltersChange(apiFilters)
       }
@@ -279,6 +384,162 @@ export default function FilterButtons({ onFiltersChange }: FilterButtonsProps) {
         {filters.filter(filter => filter.id !== "address").map((filter) => {
           const Icon = filter.icon
           const selectedValue = selectedFilters[filter.id]
+          
+          // Special handling for amenities filter
+          if (filter.id === "amenities") {
+            return (
+              <DropdownMenu key={filter.id}>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant={selectedAmenities.length > 0 ? "default" : "outline"}
+                    className={`
+                      px-4 py-3 h-auto rounded-xl font-medium transition-all duration-300
+                      flex items-center gap-2 min-w-[140px] justify-between cursor-pointer
+                      backdrop-blur-sm hover:scale-105 active:scale-95
+                      ${
+                        selectedAmenities.length > 0
+                          ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg hover:shadow-xl hover:shadow-blue-200/25"
+                          : "bg-white/80 border-2 border-blue-200/50 hover:border-blue-300 hover:bg-blue-50/80 text-slate-700 shadow-sm"
+                      }
+                    `}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Icon className="w-4 h-4" />
+                      <span className="text-sm">
+                        {selectedAmenities.length > 0 
+                          ? `${selectedAmenities.length} tiện ích`
+                          : filter.placeholder
+                        }
+                      </span>
+                    </div>
+                    <ChevronDown className="w-4 h-4 opacity-60" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="center" className="w-64 max-h-80 overflow-y-auto">
+                  {selectedAmenities.length > 0 && (
+                    <>
+                      <DropdownMenuItem
+                        onClick={() => clearFilter(filter.id)}
+                        className="text-muted-foreground font-medium border-b cursor-pointer"
+                      >
+                        Xóa bộ lọc
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  {loadingAmenities ? (
+                    <div className="p-4 text-sm text-muted-foreground text-center">
+                      Đang tải...
+                    </div>
+                  ) : availableAmenities.length > 0 ? (
+                    availableAmenities.map((amenity) => (
+                      <DropdownMenuItem
+                        key={amenity.id}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          handleAmenityToggle(amenity.id)
+                        }}
+                        className="flex items-center gap-3 cursor-pointer py-3"
+                      >
+                        <Checkbox
+                          checked={selectedAmenities.includes(amenity.id)}
+                          onCheckedChange={() => handleAmenityToggle(amenity.id)}
+                        />
+                        {amenity.icon_url && (
+                          <Image
+                            src={amenity.icon_url}
+                            alt={amenity.name}
+                            width={20}
+                            height={20}
+                            className="w-5 h-5 object-contain"
+                            unoptimized
+                          />
+                        )}
+                        <span className="text-sm">{amenity.name}</span>
+                      </DropdownMenuItem>
+                    ))
+                  ) : (
+                    <div className="p-4 text-sm text-muted-foreground text-center">
+                      Không có tiện ích
+                    </div>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )
+          }
+
+          // Special handling for mezzanine filter
+          if (filter.id === "mezzanine") {
+            return (
+              <DropdownMenu key={filter.id}>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant={selectedMezzanine !== null ? "default" : "outline"}
+                    className={`
+                      px-4 py-3 h-auto rounded-xl font-medium transition-all duration-300
+                      flex items-center gap-2 min-w-[140px] justify-between cursor-pointer
+                      backdrop-blur-sm hover:scale-105 active:scale-95
+                      ${
+                        selectedMezzanine !== null
+                          ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg hover:shadow-xl hover:shadow-blue-200/25"
+                          : "bg-white/80 border-2 border-blue-200/50 hover:border-blue-300 hover:bg-blue-50/80 text-slate-700 shadow-sm"
+                      }
+                    `}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Icon className="w-4 h-4" />
+                      <span className="text-sm">
+                        {selectedFilters.mezzanine || filter.placeholder}
+                      </span>
+                    </div>
+                    <ChevronDown className="w-4 h-4 opacity-60" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="center" className="w-56">
+                  {selectedMezzanine !== null && (
+                    <>
+                      <DropdownMenuItem
+                        onClick={() => clearFilter(filter.id)}
+                        className="text-muted-foreground font-medium border-b cursor-pointer"
+                      >
+                        Xóa bộ lọc
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  <div className="p-2">
+                    <RadioGroup
+                      value={
+                        selectedMezzanine === null
+                          ? "all"
+                          : selectedMezzanine
+                            ? "true"
+                            : "false"
+                      }
+                      onValueChange={handleMezzanineChange}
+                    >
+                      <div className="flex items-center space-x-2 p-2 rounded hover:bg-muted cursor-pointer">
+                        <RadioGroupItem value="all" id="filter-mezzanine-all" />
+                        <label htmlFor="filter-mezzanine-all" className="text-sm cursor-pointer flex-1">
+                          Tất cả
+                        </label>
+                      </div>
+                      <div className="flex items-center space-x-2 p-2 rounded hover:bg-muted cursor-pointer">
+                        <RadioGroupItem value="true" id="filter-mezzanine-true" />
+                        <label htmlFor="filter-mezzanine-true" className="text-sm cursor-pointer flex-1">
+                          Có gác lửng
+                        </label>
+                      </div>
+                      <div className="flex items-center space-x-2 p-2 rounded hover:bg-muted cursor-pointer">
+                        <RadioGroupItem value="false" id="filter-mezzanine-false" />
+                        <label htmlFor="filter-mezzanine-false" className="text-sm cursor-pointer flex-1">
+                          Không có gác lửng
+                        </label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )
+          }
 
           return (
             <DropdownMenu key={filter.id}>
@@ -336,8 +597,9 @@ export default function FilterButtons({ onFiltersChange }: FilterButtonsProps) {
         })}
       </div>
 
-      {showMapPicker && (
-        <MapLocationPicker onLocationSelect={handleLocationSelect} onClose={() => setShowMapPicker(false)} />
+      {showMapPicker && typeof window !== "undefined" && createPortal(
+        <MapLocationPicker onLocationSelect={handleLocationSelect} onClose={() => setShowMapPicker(false)} />,
+        document.body
       )}
     </>
   )

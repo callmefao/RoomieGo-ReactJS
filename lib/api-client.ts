@@ -170,13 +170,16 @@ class ApiClient {
       headers,
     }
 
-    // Add body for POST, PUT, PATCH requests
-    if (data && ['POST', 'PUT', 'PATCH'].includes(method)) {
+    // Attach body for non-GET requests when payload is provided
+    if (data && method !== 'GET') {
       if (data instanceof FormData) {
         // For file uploads, remove Content-Type header to let browser set it
         delete headers['Content-Type']
         config.body = data
       } else {
+        if (!headers['Content-Type']) {
+          headers['Content-Type'] = 'application/json'
+        }
         config.body = JSON.stringify(data)
       }
     }
@@ -197,6 +200,9 @@ class ApiClient {
           throw new Error('Request timeout')
         }
         throw error
+      }
+      if (error && typeof error === 'object' && 'status' in error) {
+        throw error as ApiError
       }
       throw new Error('Network error')
     }
@@ -247,7 +253,10 @@ class ApiClient {
   /**
    * DELETE request
    */
-  public async delete<T>(endpoint: string, config?: RequestConfig & { includeAuth?: boolean }): Promise<ApiResponse<T>> {
+  public async delete<T>(
+    endpoint: string,
+    config?: RequestConfig & { includeAuth?: boolean; data?: any }
+  ): Promise<ApiResponse<T>> {
     return this.request<T>('DELETE', endpoint, config)
   }
 
