@@ -2,11 +2,14 @@
 
 import { useState, useRef, useEffect } from "react"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { MessageCircle, X, Send, Mic } from "lucide-react"
+import { MessageCircle, X, Send, Mic, ExternalLink } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useChatbot } from "@/hooks/useChatbot"
+import ChatbotService from "@/lib/chatbot-service"
 
 interface Message {
   id: string
@@ -15,69 +18,36 @@ interface Message {
   timestamp: Date
 }
 
-const BOT_RESPONSES = {
-  greeting: [
-    "Chào bạn! Mình là Em Boo nè 🎀 Bạn đang tìm phòng trọ ở đâu thế?",
-    "Hi bạn yêu! Em Boo đây 💙 Để em giúp bạn tìm phòng trọ ưng ý nhé!",
-    "Xin chào! Em là Boo, trợ lý tìm trọ của bạn 🏠 Em có thể giúp gì cho bạn?",
-  ],
-  budget: [
-    "Bạn muốn tìm phòng trong tầm giá bao nhiêu vậy? Em sẽ lọc phòng phù hợp cho bạn ngay! 💰",
-    "Ngân sách của bạn khoảng bao nhiêu một tháng nhỉ? Để em tìm những phòng đẹp mà giá hợp lý nha! ✨",
-  ],
-  location: [
-    "Bạn muốn tìm phòng ở khu vực nào? Gần trường học, gần chợ hay trung tâm thành phố? 📍",
-    "Địa điểm nào bạn thích nhất? Em sẽ tìm những phòng đẹp ở gần đó cho bạn! 🗺️",
-  ],
-  amenities: [
-    "Bạn cần phòng có những tiện ích gì nhỉ? Wifi, máy lạnh, bếp riêng...? Cứ nói em nghe nha! 🌟",
-    "Phòng bạn tìm cần có gì đặc biệt không? Gác lửng, ban công, hay máy giặt? Em note lại liền! 📝",
-  ],
-  confirmation: [
-    "Để em tìm phòng phù hợp với yêu cầu của bạn nhé! Chờ em một chút... 🔍",
-    "Okee! Em đang tìm kiếm những phòng đẹp nhất cho bạn đây! ⏳",
-  ],
-  help: [
-    "Em có thể giúp bạn:\n• Tìm phòng theo giá 💰\n• Lọc phòng theo khu vực 📍\n• Gợi ý phòng có tiện ích mong muốn ✨\n• Xem phòng nổi bật 🌟\nBạn muốn làm gì nhỉ?",
-    "Em Boo có thể:\n✨ Tìm phòng giá rẻ\n🏠 Gợi ý phòng gần trường\n💎 Lọc phòng cao cấp\n🎯 Tìm phòng theo yêu cầu\nBạn cần gì nào?",
-  ],
-  thanks: [
-    "Không có gì đâu bạn yêu! Em luôn sẵn sàng giúp bạn mà 💙",
-    "Hehe, em vui khi giúp được bạn! Có gì cứ gọi em nha! 🎀",
-  ],
-  default: [
-    "Hmm... Em chưa hiểu lắm ý bạn 🤔 Bạn có thể nói rõ hơn được không?",
-    "Em không chắc mình hiểu đúng ý bạn 😅 Bạn thử nói lại xem?",
-    "Xin lỗi bạn, em chưa được học câu này 🥺 Bạn có thể hỏi em về tìm phòng trọ không?",
-  ],
-}
-
+// Quick reply suggestions for users
 const QUICK_REPLIES = [
   { text: "Tìm phòng giá rẻ", icon: "💰" },
-  { text: "Phòng gần trường", icon: "🎓" },
-  { text: "Phòng có gác lửng", icon: "🏠" },
-  { text: "Xem phòng nổi bật", icon: "⭐" },
+  { text: "Phòng gần ĐHCT", icon: "🎓" },
+  { text: "Phòng có wifi", icon: "📶" },
+  { text: "Dưới 3 triệu", icon: "💵" },
 ]
 
 export default function ChatBot() {
+  const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
-  const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState("")
-  const [isTyping, setIsTyping] = useState(false)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  
+  // Use chatbot hook for API integration
+  const { messages, isTyping, sendMessage: sendApiMessage, lastResponse } = useChatbot()
 
   // Welcome message on first open
   useEffect(() => {
     if (isOpen && messages.length === 0) {
       const welcomeMessage: Message = {
         id: "welcome",
-        text: BOT_RESPONSES.greeting[Math.floor(Math.random() * BOT_RESPONSES.greeting.length)],
+        text: ChatbotService.getWelcomeMessage(),
         sender: "bot",
         timestamp: new Date(),
       }
-      setMessages([welcomeMessage])
+      // Manually add welcome message to hook state would require modification
+      // For now, we'll trigger it through the UI
     }
   }, [isOpen, messages.length])
 
@@ -86,87 +56,34 @@ export default function ChatBot() {
     if (scrollAreaRef.current) {
       const scrollElement = scrollAreaRef.current.querySelector("[data-radix-scroll-area-viewport]")
       if (scrollElement) {
-        scrollElement.scrollTop = scrollElement.scrollHeight
+        // Smooth scroll to bottom
+        setTimeout(() => {
+          scrollElement.scrollTo({
+            top: scrollElement.scrollHeight,
+            behavior: 'smooth'
+          })
+        }, 100)
       }
     }
   }, [messages, isTyping])
 
-  const getBotResponse = (userMessage: string): string => {
-    const lowerMessage = userMessage.toLowerCase()
-
-    // Greeting detection
-    if (
-      lowerMessage.match(/^(hi|hello|chào|xin chào|hey|hế nhô|hê lô|helo)/i) ||
-      lowerMessage.match(/(bạn ơi|em ơi|có ai|có người)/i)
-    ) {
-      return BOT_RESPONSES.greeting[Math.floor(Math.random() * BOT_RESPONSES.greeting.length)]
-    }
-
-    // Budget related
-    if (lowerMessage.match(/(giá|tiền|bao nhiêu|tầm|triệu|ngàn|budget|rẻ|mắc)/i)) {
-      return BOT_RESPONSES.budget[Math.floor(Math.random() * BOT_RESPONSES.budget.length)]
-    }
-
-    // Location related
-    if (
-      lowerMessage.match(/(đâu|chỗ nào|khu vực|địa điểm|quận|phường|gần|xa|trường|chợ|trung tâm)/i)
-    ) {
-      return BOT_RESPONSES.location[Math.floor(Math.random() * BOT_RESPONSES.location.length)]
-    }
-
-    // Amenities related
-    if (
-      lowerMessage.match(
-        /(tiện ích|wifi|máy lạnh|điều hòa|bếp|giặt|gác lửng|ban công|thang máy|bãi xe|nóng lạnh)/i
-      )
-    ) {
-      return BOT_RESPONSES.amenities[Math.floor(Math.random() * BOT_RESPONSES.amenities.length)]
-    }
-
-    // Help request
-    if (lowerMessage.match(/(giúp|help|hỗ trợ|làm sao|thế nào|có thể|được gì)/i)) {
-      return BOT_RESPONSES.help[Math.floor(Math.random() * BOT_RESPONSES.help.length)]
-    }
-
-    // Thanks
-    if (lowerMessage.match(/(cảm ơn|thank|cám ơn|thanks|tks|ty)/i)) {
-      return BOT_RESPONSES.thanks[Math.floor(Math.random() * BOT_RESPONSES.thanks.length)]
-    }
-
-    // Quick action keywords
-    if (lowerMessage.match(/(tìm|tìm kiếm|search|lọc|filter|gợi ý|suggest)/i)) {
-      return BOT_RESPONSES.confirmation[Math.floor(Math.random() * BOT_RESPONSES.confirmation.length)]
-    }
-
-    // Default response
-    return BOT_RESPONSES.default[Math.floor(Math.random() * BOT_RESPONSES.default.length)]
-  }
-
   const sendMessage = async (text: string) => {
     if (!text.trim()) return
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      text: text.trim(),
-      sender: "user",
-      timestamp: new Date(),
-    }
-
-    setMessages((prev) => [...prev, userMessage])
     setInputValue("")
-    setIsTyping(true)
 
-    // Simulate bot typing delay
-    setTimeout(() => {
-      const botResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        text: getBotResponse(text),
-        sender: "bot",
-        timestamp: new Date(),
-      }
-      setMessages((prev) => [...prev, botResponse])
-      setIsTyping(false)
-    }, 800 + Math.random() * 800) // Random delay 0.8-1.6s
+    // Call API through hook
+    const response = await sendApiMessage(text)
+
+    // Handle search results
+    if (response && ChatbotService.hasSearchResults(response)) {
+      // Optional: Show a notification before redirecting
+      setTimeout(() => {
+        if (response.search_url) {
+          router.push(response.search_url.replace('http://localhost:3000', ''))
+        }
+      }, 1500) // Delay 1.5s to let user read the response
+    }
   }
 
   const handleQuickReply = (text: string) => {
@@ -210,11 +127,12 @@ export default function ChatBot() {
   return (
     <div
       className={cn(
-        "fixed z-50 flex flex-col bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50 rounded-3xl shadow-2xl border-2 border-cyan-200/50 transition-all duration-300",
+        "fixed z-50 flex flex-col bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50 rounded-3xl shadow-2xl border-2 border-cyan-200/50 transition-all duration-300 overflow-hidden",
         isMinimized
           ? "bottom-6 right-6 w-80 h-20"
-          : "bottom-6 right-6 w-[420px] h-[600px] md:w-[450px] md:h-[650px]"
+          : "bottom-6 right-6 w-[420px] md:w-[450px]"
       )}
+      style={!isMinimized ? { height: 'min(650px, calc(100vh - 100px))' } : undefined}
     >
       {/* Header */}
       <div className={cn(
@@ -257,46 +175,68 @@ export default function ChatBot() {
       {!isMinimized && (
         <>
           {/* Messages */}
-          <ScrollArea ref={scrollAreaRef} className="flex-1 p-4">
+          <ScrollArea ref={scrollAreaRef} className="flex-1 px-4 pt-3 pb-2 overflow-y-auto">
             <div className="space-y-4">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={cn(
-                    "flex gap-2 animate-in fade-in slide-in-from-bottom-2 duration-300",
-                    message.sender === "user" ? "justify-end" : "justify-start"
-                  )}
-                >
-                  {message.sender === "bot" && (
-                    <div className="relative h-8 w-8 flex-shrink-0">
-                      <Image
-                        src="/images/MASCOT.png"
-                        alt="Em Boo"
-                        fill
-                        className="object-contain"
-                      />
-                    </div>
-                  )}
+              {messages.map((message, index) => {
+                // Check if this is the last bot message with search URL
+                const isLastBotMessage = message.sender === "bot" && index === messages.length - 1;
+                const hasSearchUrl = isLastBotMessage && lastResponse?.search_url;
+
+                return (
                   <div
+                    key={message.id}
                     className={cn(
-                      "max-w-[75%] rounded-2xl px-4 py-2 shadow-sm",
-                      message.sender === "user"
-                        ? "bg-gradient-to-br from-blue-500 to-cyan-500 text-white"
-                        : "bg-white border border-cyan-100 text-foreground"
+                      "flex gap-2 animate-in fade-in slide-in-from-bottom-2 duration-300",
+                      message.sender === "user" ? "justify-end" : "justify-start"
                     )}
                   >
-                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.text}</p>
-                    <span
+                    {message.sender === "bot" && (
+                      <div className="relative h-8 w-8 flex-shrink-0">
+                        <Image
+                          src="/images/MASCOT.png"
+                          alt="Em Boo"
+                          fill
+                          className="object-contain"
+                        />
+                      </div>
+                    )}
+                    <div
                       className={cn(
-                        "text-[10px] mt-1 block",
-                        message.sender === "user" ? "text-cyan-100" : "text-muted-foreground"
+                        "rounded-2xl shadow-sm",
+                        message.sender === "user"
+                          ? "max-w-[75%] bg-gradient-to-br from-blue-500 to-cyan-500 text-white px-4 py-2"
+                          : "max-w-[85%] sm:max-w-[380px] bg-white border border-cyan-100 text-foreground"
                       )}
                     >
-                      {formatTime(message.timestamp)}
-                    </span>
+                      <div className={message.sender === "bot" ? "px-4 py-2" : ""}>
+                        <p className="text-sm whitespace-pre-wrap leading-relaxed break-words overflow-wrap-anywhere">{message.text}</p>
+                        <span
+                          className={cn(
+                            "text-[10px] mt-1 block",
+                            message.sender === "user" ? "text-cyan-100" : "text-muted-foreground"
+                          )}
+                        >
+                          {formatTime(message.timestamp)}
+                        </span>
+                      </div>
+                      
+                      {/* Show search button inside bot message bubble */}
+                      {hasSearchUrl && (
+                        <div className="px-3 pb-3 pt-2 border-t border-cyan-100 mt-2">
+                          <Button
+                            size="sm"
+                            onClick={() => router.push(lastResponse.search_url!.replace('http://localhost:3000', ''))}
+                            className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white rounded-lg shadow-md hover:shadow-lg transition-all text-xs"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                            Xem kết quả tìm kiếm
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               {isTyping && (
                 <div className="flex gap-2 animate-in fade-in slide-in-from-bottom-2">
@@ -312,6 +252,8 @@ export default function ChatBot() {
                   </div>
                 </div>
               )}
+
+
             </div>
           </ScrollArea>
 

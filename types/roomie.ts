@@ -14,6 +14,11 @@ export interface Roomie {
   avatar: string
   description: string
   
+  // District info (từ locations app - REQUIRED khi tạo mới)
+  district?: number // District ID (dùng cho POST request)
+  district_name?: string // District name (từ GET response)
+  district_slug?: string // District slug (từ GET response)
+  
   // Tiêu chí tìm bạn ở ghép
   preferred_areas: string[]
   room_type: string
@@ -44,6 +49,9 @@ export interface RoomieFilters {
   radius?: number
   amenities?: string
   
+  // District filter (PRIMARY filter)
+  district?: string | number // Có thể là slug hoặc ID
+  
   // Các field bổ sung cho Find Roomie
   occupation?: OccupationType
   school?: string
@@ -71,6 +79,10 @@ export interface CreateRoomiePayload {
   occupation: OccupationType
   school?: string
   description: string
+  
+  // District REQUIRED khi tạo mới
+  district: number // District ID
+  
   preferred_areas: string[]
   room_type: string
   budget_min: number
@@ -81,4 +93,9 @@ export interface CreateRoomiePayload {
   contact_phone?: string
   contact_hours?: string
   avatar_file?: File
+  
+  // GPS coordinates (OPTIONAL)
+  latitude?: number
+  longitude?: number
+  search_radius_km?: number
 }

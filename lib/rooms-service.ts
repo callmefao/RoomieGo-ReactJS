@@ -67,6 +67,10 @@ export class RoomsService {
   /**
    * Get all rooms with optional filtering
    * Matches: GET /api/rooms/?status=1&is_featured=True&min_price=1000000&max_price=3000000
+   * 
+   * New filters:
+   * - district: District slug or ID (e.g., "ninh-kieu" or 1)
+   * - university: University code for GPS search (e.g., "fptu-ct")
    */
   public static async getRooms(filters?: RoomFilters, options?: { includeAuth?: boolean }): Promise<any> {
     const response = await apiClient.get<any>(
@@ -74,6 +78,31 @@ export class RoomsService {
       { 
         params: filters,
         includeAuth: options?.includeAuth ?? false // Public endpoint by default
+      }
+    )
+    return response.data
+  }
+
+  /**
+   * Get rooms near a specific university (GPS-based search within 3km radius)
+   * SEO-friendly URL endpoint
+   * Matches: GET /api/rooms/near/{university_code}/
+   * 
+   * @param universityCode - University code (e.g., "fptu-ct", "ctu")
+   * @param filters - Optional additional filters (price, area, etc.)
+   * @returns Promise with rooms response
+   * 
+   * Example: fetchRoomsNearUniversity('fptu-ct', { min_price: 1000000, max_price: 3000000 })
+   */
+  public static async fetchRoomsNearUniversity(
+    universityCode: string,
+    filters?: Omit<RoomFilters, 'university'>
+  ): Promise<any> {
+    const response = await apiClient.get<any>(
+      `/api/rooms/near/${universityCode}/`,
+      { 
+        params: filters,
+        includeAuth: false // Public endpoint
       }
     )
     return response.data

@@ -33,6 +33,10 @@ export interface Room {
   location: string
   status: number // 1 = approved/open, 0 = pending/closed
   
+  // District info (từ locations app)
+  district_name?: string | null
+  district_slug?: string | null
+  
   // Fields from /api/rooms/ list endpoint (always present, can be null)
   deposit: number | null
   electricity_price: number | null
@@ -101,6 +105,10 @@ export interface RoomFilters {
   max_people?: number
   search?: string
   ordering?: 'price' | '-price' | 'area' | '-area' | 'created_at' | '-created_at'
+  
+  // Location filters (from locations app)
+  district?: string | number // District slug or ID (e.g., "ninh-kieu" or 1)
+  university?: string // University code for GPS-based search (e.g., "fptu-ct")
 }
 
 // API Response structure with Django REST pagination

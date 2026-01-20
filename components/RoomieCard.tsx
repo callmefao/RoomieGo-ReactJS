@@ -72,6 +72,16 @@ function RoomieCard({ roomie }: RoomieCardProps) {
             </h3>
 
             <div className="flex flex-wrap items-center gap-2 mb-2">
+              {roomie.district_name && (
+                <Badge
+                  variant="outline"
+                  className="inline-flex items-center gap-1 border-green-200 text-green-700 bg-green-50"
+                >
+                  <MapPin className="h-3.5 w-3.5" />
+                  {roomie.district_name}
+                </Badge>
+              )}
+              
               <Badge
                 variant="outline"
                 className={cn("inline-flex items-center gap-1", getGenderColor(roomie.gender))}

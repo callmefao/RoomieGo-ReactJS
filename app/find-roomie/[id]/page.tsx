@@ -21,42 +21,57 @@ import {
   Eye,
   MessageCircle,
 } from "lucide-react"
-import { FIND_ROOMIE_LIST } from "@/lib/mock-data/find-roomie"
 import type { Roomie } from "@/types/roomie"
 import Footer from "@/components/Footer"
 import RoomieCard from "@/components/RoomieCard"
+import { findRoomieService } from "@/lib/findroomie-service"
+import { mapApiResponseToRoomie } from "@/lib/utils/findroomie-mapper"
+import { FIND_ROOMIE_DEFAULTS } from "@/lib/utils/findroomie-constants"
 
 export default function RoomieDetailPage() {
   const params = useParams()
   const router = useRouter()
   const [roomie, setRoomie] = useState<Roomie | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [similarRoomies, setSimilarRoomies] = useState<Roomie[]>([])
 
   useEffect(() => {
     const fetchRoomie = async () => {
       setLoading(true)
-      // Simulate API loading
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      setError(null)
 
-      const id = Number(params.id)
-      const foundRoomie = FIND_ROOMIE_LIST.find((r) => r.id === id)
+      try {
+        const id = Number(params.id)
+        
+        // Fetch roomie detail from API
+        const apiResponse = await findRoomieService.getRoommateById(id)
+        const mappedRoomie = mapApiResponseToRoomie(apiResponse)
+        setRoomie(mappedRoomie)
 
-      if (foundRoomie) {
-        setRoomie(foundRoomie)
+        // Fetch similar roomies with same filters
+        const similarResponse = await findRoomieService.getRoommates({
+          gender: apiResponse.gender,
+          ordering: FIND_ROOMIE_DEFAULTS.SORT_ORDER,
+        })
 
-        // Find similar roomies (same gender and similar age range)
-        const similar = FIND_ROOMIE_LIST.filter(
-          (r) =>
-            r.id !== foundRoomie.id &&
-            r.gender === foundRoomie.gender &&
-            Math.abs(r.age - foundRoomie.age) <= 5
-        ).slice(0, 4)
+        // Filter and map similar roomies
+        const similar = similarResponse.results
+          .filter(r => {
+            if (r.id === id) return false
+            // Similar age range (within configured years)
+            return Math.abs(r.age - apiResponse.age) <= FIND_ROOMIE_DEFAULTS.SIMILAR_AGE_RANGE
+          })
+          .slice(0, FIND_ROOMIE_DEFAULTS.SIMILAR_ROOMIES_COUNT)
+          .map(mapApiResponseToRoomie)
 
         setSimilarRoomies(similar)
+      } catch (err) {
+        console.error('❌ Error fetching roomie detail:', err)
+        setError('Không thể tải thông tin hồ sơ.')
+      } finally {
+        setLoading(false)
       }
-
-      setLoading(false)
     }
 
     fetchRoomie()
@@ -115,9 +130,13 @@ export default function RoomieDetailPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center">
         <div className="text-center space-y-4">
-          <div className="text-6xl mb-4">😔</div>
-          <h2 className="text-2xl font-semibold text-foreground">Không tìm thấy hồ sơ</h2>
-          <p className="text-muted-foreground">Hồ sơ bạn đang tìm không tồn tại hoặc đã bị xóa.</p>
+          <div className="text-6xl mb-4">{error ? '⚠️' : '😔'}</div>
+          <h2 className="text-2xl font-semibold text-foreground">
+            {error ? 'Đã có lỗi xảy ra' : 'Không tìm thấy hồ sơ'}
+          </h2>
+          <p className="text-muted-foreground">
+            {error || 'Hồ sơ bạn đang tìm không tồn tại hoặc đã bị xóa.'}
+          </p>
           <Button onClick={() => router.push("/find-roomie")} className="mt-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Quay lại danh sách

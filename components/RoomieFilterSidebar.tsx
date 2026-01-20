@@ -13,6 +13,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu"
 import MapLocationPicker from "./MapLocationPicker"
+import DistrictSelector from "./DistrictSelector"
 import { createPortal } from "react-dom"
 import { useRouter } from "next/navigation"
 import { ChevronDown, Check, Users, GraduationCap, Briefcase, Clock } from "lucide-react"
@@ -20,6 +21,10 @@ import type { Gender, OccupationType, LifestyleType } from "@/types/roomie"
 import { canthoUniversities } from "@/data/universities"
 
 interface RoomieFilterState {
+  // District filter (PRIMARY filter from locations app)
+  district?: number // District ID
+  districtSlug?: string // District slug for URL
+  
   location: {
     address: string
     coordinates: [number, number]
@@ -105,6 +110,10 @@ export default function RoomieFilterSidebar() {
     preferredArea: "",
   })
 
+  // Track if user has interacted with sliders
+  const [hasInteractedWithAge, setHasInteractedWithAge] = useState(false)
+  const [hasInteractedWithPrice, setHasInteractedWithPrice] = useState(false)
+
   const [showLocationPicker, setShowLocationPicker] = useState(false)
 
   const handleLocationSelect = (location: { address: string; coordinates: [number, number]; radius: number }) => {
@@ -116,6 +125,7 @@ export default function RoomieFilterSidebar() {
   }
 
   const handlePriceRangeChange = (values: number[]) => {
+    setHasInteractedWithPrice(true)
     setFilters((prev) => ({
       ...prev,
       priceRange: {
@@ -126,6 +136,7 @@ export default function RoomieFilterSidebar() {
   }
 
   const handleAgeRangeChange = (values: number[]) => {
+    setHasInteractedWithAge(true)
     setFilters((prev) => ({
       ...prev,
       ageRange: {
@@ -141,6 +152,12 @@ export default function RoomieFilterSidebar() {
     // Build search params from filters
     const params = new URLSearchParams()
 
+    // Add district filter (PRIMARY filter)
+    if (filters.districtSlug) {
+      params.append("district", filters.districtSlug)
+      console.log(`➕ Added district param: ${filters.districtSlug}`)
+    }
+
     // Add location filters
     if (filters.location && filters.location.address && filters.location.address.trim() !== "") {
       params.append("latitude", filters.location.coordinates[0].toString())
@@ -148,13 +165,17 @@ export default function RoomieFilterSidebar() {
       params.append("radius", filters.location.radius.toString())
     }
 
-    // Add price range filters
-    params.append("min_price", filters.priceRange.min.toString())
-    params.append("max_price", filters.priceRange.max.toString())
+    // Add price range filters (only if user has interacted)
+    if (hasInteractedWithPrice) {
+      params.append("min_price", filters.priceRange.min.toString())
+      params.append("max_price", filters.priceRange.max.toString())
+    }
 
-    // Add age range filters
-    params.append("min_age", filters.ageRange.min.toString())
-    params.append("max_age", filters.ageRange.max.toString())
+    // Add age range filters (only if user has interacted)
+    if (hasInteractedWithAge) {
+      params.append("min_age", filters.ageRange.min.toString())
+      params.append("max_age", filters.ageRange.max.toString())
+    }
 
     // Add gender filter
     if (filters.gender) {
@@ -196,6 +217,8 @@ export default function RoomieFilterSidebar() {
 
   const handleClearFilters = () => {
     setFilters({
+      district: undefined,
+      districtSlug: undefined,
       location: {
         address: "",
         coordinates: [0, 0],
@@ -216,6 +239,9 @@ export default function RoomieFilterSidebar() {
       roomType: "",
       preferredArea: "",
     })
+    // Reset interaction flags
+    setHasInteractedWithAge(false)
+    setHasInteractedWithPrice(false)
   }
 
   const formatPrice = (price: number) => {
@@ -233,6 +259,28 @@ export default function RoomieFilterSidebar() {
           <CardTitle className="text-xl font-bold">Bộ lọc tìm bạn ở ghép</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6 flex-1 overflow-y-auto">
+          {/* District Filter (PRIMARY) */}
+          <div className="space-y-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
+            <Label className="text-base font-semibold flex items-center gap-2">
+              📍 Quận/Huyện <span className="text-destructive">*</span>
+            </Label>
+            <DistrictSelector
+              value={filters.district}
+              onChange={(id, slug) => {
+                setFilters((prev) => ({
+                  ...prev,
+                  district: id,
+                  districtSlug: slug,
+                }))
+              }}
+              className="w-full"
+              required
+            />
+            <p className="text-xs text-muted-foreground">
+              Đây là bộ lọc chính để tìm bạn ở ghép theo khu vực
+            </p>
+          </div>
+
           {/* Gender Filter */}
           <div className="space-y-3 p-3 rounded-lg hover:bg-muted/30 transition-colors duration-200">
             <Label className="text-base font-semibold cursor-default">Giới tính</Label>
@@ -359,8 +407,12 @@ export default function RoomieFilterSidebar() {
           )}
 
           {/* Age Range Filter */}
-          <div className="space-y-3 p-3 rounded-lg hover:bg-muted/30 transition-colors duration-200">
-            <Label className="text-base font-semibold cursor-default">Độ tuổi</Label>
+          <div className={`space-y-3 p-3 rounded-lg hover:bg-muted/30 transition-colors duration-200 ${
+            !hasInteractedWithAge ? 'opacity-50' : ''
+          }`}>
+            <Label className="text-base font-semibold cursor-default">
+              Độ tuổi {!hasInteractedWithAge && <span className="text-xs text-muted-foreground">(chưa chọn)</span>}
+            </Label>
             <div className="space-y-4">
               <div className="cursor-pointer hover:scale-105 transition-transform duration-200">
                 <Slider
@@ -376,12 +428,13 @@ export default function RoomieFilterSidebar() {
                 <Input
                   type="number"
                   value={filters.ageRange.min}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    setHasInteractedWithAge(true)
                     setFilters((prev) => ({
                       ...prev,
                       ageRange: { ...prev.ageRange, min: Number(e.target.value) },
                     }))
-                  }
+                  }}
                   className="flex-1 cursor-text hover:border-primary/50 focus:border-primary transition-colors duration-200"
                   placeholder="Từ"
                   min={18}
@@ -391,12 +444,13 @@ export default function RoomieFilterSidebar() {
                 <Input
                   type="number"
                   value={filters.ageRange.max}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    setHasInteractedWithAge(true)
                     setFilters((prev) => ({
                       ...prev,
                       ageRange: { ...prev.ageRange, max: Number(e.target.value) },
                     }))
-                  }
+                  }}
                   className="flex-1 cursor-text hover:border-primary/50 focus:border-primary transition-colors duration-200"
                   placeholder="Đến"
                   min={18}
@@ -471,7 +525,7 @@ export default function RoomieFilterSidebar() {
             </div>
           </div>
 
-          {/* Preferred Area Filter */}
+          {/* Preferred Area Filter - TEMPORARILY HIDDEN
           <div className="space-y-3 p-3 rounded-lg hover:bg-muted/30 transition-colors duration-200">
             <Label className="text-base font-semibold cursor-default">Khu vực mong muốn</Label>
             <DropdownMenu>
@@ -504,10 +558,15 @@ export default function RoomieFilterSidebar() {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+          */}
 
           {/* Price Range Filter */}
-          <div className="space-y-3 p-3 rounded-lg hover:bg-muted/30 transition-colors duration-200">
-            <Label className="text-base font-semibold cursor-default">Ngân sách (VND/tháng)</Label>
+          <div className={`space-y-3 p-3 rounded-lg hover:bg-muted/30 transition-colors duration-200 ${
+            !hasInteractedWithPrice ? 'opacity-50' : ''
+          }`}>
+            <Label className="text-base font-semibold cursor-default">
+              Ngân sách (VND/tháng) {!hasInteractedWithPrice && <span className="text-xs text-muted-foreground">(chưa chọn)</span>}
+            </Label>
             <div className="space-y-4">
               <div className="cursor-pointer hover:scale-105 transition-transform duration-200">
                 <Slider
@@ -523,12 +582,13 @@ export default function RoomieFilterSidebar() {
                 <Input
                   type="number"
                   value={filters.priceRange.min}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    setHasInteractedWithPrice(true)
                     setFilters((prev) => ({
                       ...prev,
                       priceRange: { ...prev.priceRange, min: Number(e.target.value) },
                     }))
-                  }
+                  }}
                   className="flex-1 cursor-text hover:border-primary/50 focus:border-primary transition-colors duration-200"
                   placeholder="Từ"
                 />
@@ -536,12 +596,13 @@ export default function RoomieFilterSidebar() {
                 <Input
                   type="number"
                   value={filters.priceRange.max}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    setHasInteractedWithPrice(true)
                     setFilters((prev) => ({
                       ...prev,
                       priceRange: { ...prev.priceRange, max: Number(e.target.value) },
                     }))
-                  }
+                  }}
                   className="flex-1 cursor-text hover:border-primary/50 focus:border-primary transition-colors duration-200"
                   placeholder="Đến"
                 />
@@ -552,7 +613,7 @@ export default function RoomieFilterSidebar() {
             </div>
           </div>
 
-          {/* Room Type Filter */}
+          {/* Room Type Filter - TEMPORARILY HIDDEN
           <div className="space-y-3 p-3 rounded-lg hover:bg-muted/30 transition-colors duration-200">
             <Label className="text-base font-semibold cursor-default">Loại phòng</Label>
             <DropdownMenu>
@@ -583,6 +644,7 @@ export default function RoomieFilterSidebar() {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+          */}
         </CardContent>
 
         {/* Action Buttons - Sticky at bottom */}

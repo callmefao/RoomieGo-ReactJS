@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import MapLocationPicker from "./MapLocationPicker"
+import DistrictSelector from "./DistrictSelector"
+import UniversitySelector from "./UniversitySelector"
 import { createPortal } from "react-dom"
 import { useRouter } from "next/navigation"
 import { amenitiesService, type Amenity } from "@/lib/amenities-service"
@@ -16,6 +18,11 @@ import Image from "next/image"
 import { ChevronDown, Check, Layers } from "lucide-react"
 
 interface FilterState {
+  // Location filters (from locations app)
+  district?: number // District ID
+  districtSlug?: string // District slug for URL
+  university?: string // University code
+  
   location: {
     address: string
     coordinates: [number, number]
@@ -121,6 +128,18 @@ export default function FilterSidebar() {
     // Build search params from filters
     const params = new URLSearchParams()
     
+    // Add district filter (PRIMARY)
+    if (filters.districtSlug) {
+      params.append('district', filters.districtSlug)
+      console.log(`➕ Added district param: ${filters.districtSlug}`)
+    }
+    
+    // Add university filter (GPS-based search)
+    if (filters.university) {
+      params.append('university', filters.university)
+      console.log(`➕ Added university param: ${filters.university}`)
+    }
+    
     // Add location filters only if a location is actually selected (not empty)
     if (filters.location && filters.location.address && filters.location.address.trim() !== "") {
       params.append('latitude', filters.location.coordinates[0].toString())
@@ -187,9 +206,52 @@ export default function FilterSidebar() {
           <CardTitle className="text-xl font-bold">Bộ lọc tìm kiếm</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6 flex-1 overflow-y-auto">
+          {/* District & University Filters */}
+          <div className="space-y-4 p-3 rounded-lg bg-primary/5 border border-primary/20">
+            <div className="space-y-3">
+              <Label className="text-base font-semibold flex items-center gap-2">
+                📍 Quận/Huyện
+              </Label>
+              <DistrictSelector
+                value={filters.district}
+                onChange={(id, slug) => {
+                  setFilters((prev) => ({
+                    ...prev,
+                    district: id,
+                    districtSlug: slug,
+                    university: undefined, // Reset university khi đổi district
+                  }))
+                }}
+                className="w-full"
+              />
+            </div>
+
+            {filters.district && (
+              <div className="space-y-3">
+                <Label className="text-base font-semibold flex items-center gap-2">
+                  🎓 Trường học (tùy chọn)
+                </Label>
+                <UniversitySelector
+                  value={filters.university}
+                  onChange={(code) => {
+                    setFilters((prev) => ({
+                      ...prev,
+                      university: code,
+                    }))
+                  }}
+                  districtId={filters.district}
+                  className="w-full"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Tìm phòng trong bán kính 3km quanh trường
+                </p>
+              </div>
+            )}
+          </div>
+
           {/* Address Filter */}
           <div className="space-y-3 p-3 rounded-lg hover:bg-muted/30 transition-colors duration-200">
-            <Label className="text-base font-semibold cursor-default">Địa chỉ</Label>
+            <Label className="text-base font-semibold cursor-default">Địa chỉ GPS (tùy chọn)</Label>
             <div className="space-y-2">
               {filters.location.address ? (
                 <>

@@ -90,7 +90,12 @@ function RoomCard({ room, highlighted = false }: RoomCardProps) {
 
         <div className="flex items-center text-muted-foreground mb-2">
           <MapPin className="h-4 w-4 mr-1" />
-          <span className="text-sm">{room.location}</span>
+          <span className="text-sm">
+            {room.district_name && (
+              <span className="font-medium text-primary">📍 {room.district_name} · </span>
+            )}
+            {room.location}
+          </span>
         </div>
 
         <div className="flex items-center gap-3 text-muted-foreground mb-3">

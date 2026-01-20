@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { User, LogOut, Settings } from "lucide-react"
+import { User, LogOut, Settings, FileText } from "lucide-react"
 import { useRouter } from "next/navigation"
 import MainLayout from "@/components/layout/MainLayout"
 
@@ -23,13 +23,27 @@ export default function Header() {
 
   useEffect(() => {
     // Check if user is logged in
-    const userStr = localStorage.getItem("user")
-    if (userStr) {
-      try {
-        setUser(JSON.parse(userStr))
-      } catch (e) {
-        console.error("Failed to parse user data:", e)
+    const checkUser = () => {
+      const userStr = localStorage.getItem("user")
+      if (userStr) {
+        try {
+          setUser(JSON.parse(userStr))
+        } catch (e) {
+          console.error("Failed to parse user data:", e)
+        }
+      } else {
+        setUser(null)
       }
+    }
+
+    // Initial check
+    checkUser()
+
+    // Listen for auth state changes
+    window.addEventListener('authStateChanged', checkUser)
+    
+    return () => {
+      window.removeEventListener('authStateChanged', checkUser)
     }
   }, [])
 
@@ -38,6 +52,7 @@ export default function Header() {
     localStorage.removeItem("refresh_token")
     localStorage.removeItem("user")
     setUser(null)
+    window.dispatchEvent(new Event('authStateChanged'))
     router.push("/")
   }
 
@@ -83,7 +98,7 @@ export default function Header() {
               variant="ghost"
               size="sm"
               className="text-slate-700 hover:bg-blue-50 hover:text-blue-600 border-transparent hover:border-blue-200 hover:shadow-sm cursor-pointer transition-all duration-200 rounded-lg"
-              onClick={() => (window.location.href = "#dich-vu-van-chuyen")}
+              onClick={() => router.push("/transport-services")}
             >
               Dịch vụ vận chuyển
             </Button>
@@ -125,6 +140,10 @@ export default function Header() {
                     Admin Dashboard
                   </DropdownMenuItem>
                 )}
+                <DropdownMenuItem onClick={() => router.push("/find-roomie/my-posts")}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Bài đăng của tôi
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="w-4 h-4 mr-2" />
                   Đăng xuất

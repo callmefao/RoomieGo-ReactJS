@@ -57,6 +57,9 @@ export default function AuthPage() {
       // Store user info
       localStorage.setItem("user", JSON.stringify(user))
 
+      // Dispatch auth change event
+      window.dispatchEvent(new Event('authStateChanged'))
+
       // Step 3: Route based on role
       if (user.role === "staff" || user.role === "admin") {
         router.push("/admin")
@@ -104,6 +107,8 @@ export default function AuthPage() {
         // Try auto-login but handle failures gracefully
         try {
           const me = await loginAndStore(username, password)
+          // Dispatch auth change event
+          window.dispatchEvent(new Event('authStateChanged'))
           // route after successful login
           if (me.role === "staff" || me.role === "admin") router.push("/admin")
           else router.push("/")

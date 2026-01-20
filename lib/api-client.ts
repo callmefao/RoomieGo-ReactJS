@@ -159,7 +159,7 @@ class ApiClient {
       params,
       headers: customHeaders,
       includeAuth = true,
-      timeout = 10000
+      timeout = 30000
     } = options || {}
 
     const url = this.buildURL(endpoint, params)
