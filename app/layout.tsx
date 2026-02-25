@@ -6,6 +6,7 @@ import Header from "@/components/Header"
 import ErrorOverlayProvider from "@/components/ErrorOverlayProvider"
 import MainLayout from "@/components/layout/MainLayout"
 import ChatBot from "@/components/ChatBot"
+import GoogleAuthProvider from "@/components/GoogleAuthProvider"
 
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
@@ -30,13 +31,15 @@ export default function RootLayout({
   return (
     <html lang="vi" className={inter.variable}>
       <body className="font-sans antialiased bg-gradient-to-br from-slate-50 via-blue-50/30 to-cyan-50/20 min-h-screen">
-        <ErrorOverlayProvider>
-          <Header />
-          <main className="py-8">
-            <MainLayout>{children}</MainLayout>
-          </main>
-          <ChatBot />
-        </ErrorOverlayProvider>
+        <GoogleAuthProvider>
+          <ErrorOverlayProvider>
+            <Header />
+            <main className="py-8">
+              <MainLayout>{children}</MainLayout>
+            </main>
+            <ChatBot />
+          </ErrorOverlayProvider>
+        </GoogleAuthProvider>
       </body>
     </html>
   )

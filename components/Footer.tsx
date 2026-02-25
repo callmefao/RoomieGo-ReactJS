@@ -7,7 +7,7 @@ import MainLayout from "@/components/layout/MainLayout"
 export default function Footer() {
   return (
     <footer
-      className="relative left-1/2 w-screen -translate-x-1/2 border-t border-border bg-muted/30"
+      className="relative left-1/2 w-screen -translate-x-1/2 border-t border-border bg-background/80 backdrop-blur-sm shadow-[0_-5px_20px_-10px_rgba(0,0,0,0.1)]"
       role="contentinfo"
     >
       <MainLayout className="py-12">
