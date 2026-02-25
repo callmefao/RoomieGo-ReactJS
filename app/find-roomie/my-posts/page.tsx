@@ -9,6 +9,7 @@ import { findRoomieService } from "@/lib/findroomie-service"
 import { mapApiResponseToRoomie } from "@/lib/utils/findroomie-mapper"
 import type { Roomie } from "@/types/roomie"
 import RoomieCard from "@/components/RoomieCard"
+import ProtectedRoute from "@/components/ProtectedRoute"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,13 +30,6 @@ export default function MyPostsPage() {
   const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
-    // Check authentication
-    const token = localStorage.getItem('access_token')
-    if (!token) {
-      router.push('/auth')
-      return
-    }
-
     fetchMyPosts()
   }, [])
 
@@ -80,6 +74,7 @@ export default function MyPostsPage() {
   }
 
   return (
+    <ProtectedRoute requireAuth={true}>
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
       <div className="mb-8">
@@ -92,21 +87,11 @@ export default function MyPostsPage() {
           Quay lại
         </Button>
 
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Bài đăng của tôi</h1>
-            <p className="text-muted-foreground mt-2">
-              Quản lý các bài đăng tìm bạn ở ghép của bạn
-            </p>
-          </div>
-          <Button
-            onClick={() => router.push("/find-roomie/create")}
-            size="lg"
-            className="gap-2 rounded-full bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-600 hover:from-blue-600 hover:via-cyan-600 hover:to-blue-700"
-          >
-            <Plus className="h-5 w-5" />
-            Tạo bài mới
-          </Button>
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Bài đăng của tôi</h1>
+          <p className="text-muted-foreground mt-2">
+            Quản lý bài đăng tìm bạn ở ghép của bạn
+          </p>
         </div>
       </div>
 
@@ -128,56 +113,47 @@ export default function MyPostsPage() {
           </div>
         </Card>
       ) : posts.length > 0 ? (
-        <>
-          <div className="mb-6">
-            <p className="text-sm text-muted-foreground">
-              Bạn có <span className="font-semibold text-foreground">{posts.length}</span> bài đăng
-            </p>
+        <div className="max-w-2xl mx-auto">
+          {/* Single Post Display */}
+          <div className="relative group">
+            <RoomieCard roomie={posts[0]} />
+            
+            {/* Action Buttons */}
+            <div className="flex gap-2 mt-4 justify-center">
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => router.push(`/find-roomie/${posts[0].id}`)}
+              >
+                <Eye className="h-4 w-4" />
+                Xem chi tiết
+              </Button>
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => router.push(`/find-roomie/edit/${posts[0].id}`)}
+              >
+                <Edit className="h-4 w-4" />
+                Chỉnh sửa
+              </Button>
+              <Button
+                variant="destructive"
+                className="gap-2"
+                onClick={() => setDeleteId(posts[0].id)}
+              >
+                <Trash2 className="h-4 w-4" />
+                Xóa bài đăng
+              </Button>
+            </div>
           </div>
-
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {posts.map((post) => (
-              <div key={post.id} className="relative group">
-                <RoomieCard roomie={post} />
-                
-                {/* Action Buttons Overlay */}
-                <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="shadow-lg"
-                    onClick={() => router.push(`/find-roomie/${post.id}`)}
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="shadow-lg"
-                    onClick={() => router.push(`/find-roomie/edit/${post.id}`)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    className="shadow-lg"
-                    onClick={() => setDeleteId(post.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </>
+        </div>
       ) : (
         <Card className="p-12">
           <div className="text-center space-y-4">
             <div className="text-6xl mb-4">📝</div>
             <h3 className="text-2xl font-semibold text-foreground">Chưa có bài đăng nào</h3>
             <p className="text-muted-foreground max-w-md mx-auto">
-              Bạn chưa đăng bài tìm bạn ở ghép nào. Hãy tạo bài đăng đầu tiên để tìm người bạn ở ghép phù hợp!
+              Bạn chưa đăng bài tìm bạn ở ghép nào. Hãy tạo bài đăng để tìm người bạn ở ghép phù hợp!
             </p>
             <Button
               onClick={() => router.push("/find-roomie/create")}
@@ -185,7 +161,7 @@ export default function MyPostsPage() {
               className="gap-2 mt-4 rounded-full bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-600 hover:from-blue-600 hover:via-cyan-600 hover:to-blue-700"
             >
               <Plus className="h-5 w-5" />
-              Tạo bài đăng đầu tiên
+              Tạo bài đăng
             </Button>
           </div>
         </Card>
@@ -220,5 +196,6 @@ export default function MyPostsPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </ProtectedRoute>
   )
 }

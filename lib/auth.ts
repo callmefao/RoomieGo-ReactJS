@@ -27,7 +27,12 @@ export async function loginAndStore(username: string, password: string) {
   localStorage.setItem("refresh_token", refresh)
 
   const userResp = await apiClient.get<ApiUser>("/auth/users/me/", { includeAuth: true })
+  
+  console.log('🔍 [loginAndStore] API Response:', userResp.data)
+  console.log('🔍 [loginAndStore] User role:', userResp.data.role)
+  
   localStorage.setItem("user", JSON.stringify(userResp.data))
+  console.log('✅ [loginAndStore] Stored in localStorage:', JSON.parse(localStorage.getItem("user") || '{}'))
 
   return userResp.data
 }

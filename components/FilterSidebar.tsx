@@ -177,6 +177,9 @@ export default function FilterSidebar() {
 
   const handleClearFilters = () => {
     setFilters({
+      district: undefined,
+      districtSlug: undefined,
+      university: undefined,
       location: {
         address: "",
         coordinates: [0, 0],

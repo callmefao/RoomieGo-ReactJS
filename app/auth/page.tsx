@@ -54,8 +54,14 @@ export default function AuthPage() {
 
       const user = userResponse.data
 
+      // Debug logging
+      console.log('🔍 API Response from /auth/users/me/:', user)
+      console.log('🔍 User role:', user.role)
+      console.log('🔍 User username:', user.username)
+
       // Store user info
       localStorage.setItem("user", JSON.stringify(user))
+      console.log('✅ Stored user in localStorage:', JSON.parse(localStorage.getItem("user") || '{}'))
 
       // Dispatch auth change event
       window.dispatchEvent(new Event('authStateChanged'))

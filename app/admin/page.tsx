@@ -8,11 +8,13 @@ import AccountManagement from "@/components/admin/AccountManagement"
 import RoomManagement from "@/components/admin/RoomManagement"
 import AdminStats from "@/components/admin/AdminStats"
 import PendingRooms from "@/components/admin/PendingRooms"
+import ProtectedRoute from "@/components/ProtectedRoute"
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("stats")
 
   return (
+    <ProtectedRoute requireAuth={true} allowedRoles={["admin", "staff"]}>
     <div className="space-y-8">
       <div className="space-y-2">
         <h1 className="text-4xl font-bold text-foreground">Admin Dashboard</h1>
@@ -57,5 +59,6 @@ export default function AdminDashboard() {
         </TabsContent>
       </Tabs>
     </div>
+    </ProtectedRoute>
   )
 }

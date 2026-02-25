@@ -8,8 +8,8 @@
 
 'use client'
 
-import { useState, useCallback } from 'react'
-import ChatbotService, { type ChatMessage, type ChatResponse } from '@/lib/chatbot-service'
+import { useState, useCallback, useEffect } from 'react'
+import ChatbotService, { type ChatResponse, type FunctionResult } from '@/lib/chatbot-service'
 
 // ================= HOOK TYPES =================
 
@@ -18,6 +18,8 @@ interface Message {
   text: string
   sender: 'user' | 'bot'
   timestamp: Date
+  intent?: string
+  function_results?: FunctionResult[]  // NEW: Structured data
 }
 
 interface UseChatbotResult {
@@ -40,6 +42,17 @@ export function useChatbot(): UseChatbotResult {
   const [isTyping, setIsTyping] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [lastResponse, setLastResponse] = useState<ChatResponse | null>(null)
+  const [conversationId, setConversationId] = useState<string | null>(null)
+
+  // Restore conversation_id from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedConvId = localStorage.getItem('chatbot_conversation_id')
+      if (savedConvId) {
+        setConversationId(savedConvId)
+      }
+    }
+  }, [])
 
   /**
    * Send a message to the chatbot
@@ -62,19 +75,19 @@ export function useChatbot(): UseChatbotResult {
         setMessages((prev) => [...prev, userMessage])
         setIsTyping(true)
 
-        // Build conversation history - include the user message we just added
-        const history = ChatbotService.buildHistory(
-          [...messages, userMessage].map((msg) => ({
-            sender: msg.sender,
-            text: msg.text,
-          }))
-        )
-
-        // Simulate typing delay (optional, can be removed for production)
+        // Simulate typing delay (optional)
         await new Promise((resolve) => setTimeout(resolve, 500))
 
-        // Call API
-        const response = await ChatbotService.sendMessage(text, history)
+        // Call API with conversation_id
+        const response = await ChatbotService.sendMessage(text, conversationId)
+
+        // Save conversation_id for subsequent messages
+        if (response.conversation_id) {
+          setConversationId(response.conversation_id)
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('chatbot_conversation_id', response.conversation_id)
+          }
+        }
 
         // Add bot response
         const botMessage: Message = {
@@ -82,6 +95,8 @@ export function useChatbot(): UseChatbotResult {
           text: response.reply,
           sender: 'bot',
           timestamp: new Date(),
+          intent: response.intent,
+          function_results: response.function_results,  // NEW: Include structured data
         }
 
         setMessages((prev) => [...prev, botMessage])
@@ -91,31 +106,72 @@ export function useChatbot(): UseChatbotResult {
         return response
       } catch (err: any) {
         console.error('Send message error:', err)
-        setError(err.message || 'Failed to send message')
         setIsTyping(false)
 
-        // Add error message
+        // Handle 403 - Conversation unauthorized (anonymous user with different IP)
+        if (err.status === 403 || err.response?.status === 403) {
+          console.warn('Conversation unauthorized, starting new conversation')
+          setConversationId(null)
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('chatbot_conversation_id')
+          }
+          
+          // Show friendly error message
+          const errorMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            text: 'Cuộc trò chuyện đã hết phiên. Hãy bắt đầu lại nhé! 😊',
+            sender: 'bot',
+            timestamp: new Date(),
+            intent: 'error',
+          }
+          setMessages((prev) => [...prev, errorMessage])
+          
+          // Don't retry automatically for 403
+          return null
+        }
+
+        // Handle 429 - Rate limit (should be handled by service, but double-check)
+        if (err.status === 429 || err.response?.status === 429) {
+          const errorMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            text: 'Bạn đang gửi tin nhắn quá nhanh. Vui lòng đợi một chút! 🕐',
+            sender: 'bot',
+            timestamp: new Date(),
+            intent: 'rate_limited',
+          }
+          setMessages((prev) => [...prev, errorMessage])
+          return null
+        }
+
+        setError(err.message || 'Failed to send message')
+
+        // Add generic error message
         const errorMessage: Message = {
           id: (Date.now() + 1).toString(),
           text: 'Xin lỗi, mình không thể trả lời ngay bây giờ. Vui lòng thử lại sau! 😓',
           sender: 'bot',
           timestamp: new Date(),
+          intent: 'error',
         }
         setMessages((prev) => [...prev, errorMessage])
 
         return null
       }
     },
-    [messages]
+    [conversationId]
   )
 
   /**
-   * Clear all messages
+   * Clear all messages and conversation
    */
   const clearMessages = useCallback(() => {
     setMessages([])
     setError(null)
     setLastResponse(null)
+    setConversationId(null)
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('chatbot_conversation_id')
+    }
   }, [])
 
   return {
@@ -132,10 +188,39 @@ export function useChatbot(): UseChatbotResult {
 
 interface UseChatbotHealthResult {
   health: {
-    status: 'healthy' | 'unhealthy'
-    gemini_configured: boolean
-    model: string
-    frontend_url: string
+    status: 'ok' | 'error'
+    message: string
+    chatbot_name: string
+    version: string
+    features: string[]
+    database: {
+      connected: boolean
+      conversationCount: number
+      messageCount: number
+    }
+    config: {
+      llmModel: string
+      apiKeyConfigured: boolean
+      maxHistoryMessages: number
+      timeoutSeconds: number
+      supportedIntents: string[]
+    }
+    rateLimits: {
+      anonymous: string
+      authenticated: string
+      burst: string
+    }
+    budget: {
+      dailyLimit: number
+      dailyTokenLimit: number
+      todayUsage: {
+        requests: number
+        tokens: number
+        cost: number
+      }
+      remainingBudget: number
+      remainingTokens: number
+    }
   } | null
   loading: boolean
   error: string | null

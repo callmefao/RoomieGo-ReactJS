@@ -140,10 +140,17 @@ export default function Header() {
                     Admin Dashboard
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem onClick={() => router.push("/find-roomie/my-posts")}>
-                  <FileText className="w-4 h-4 mr-2" />
-                  Bài đăng của tôi
-                </DropdownMenuItem>
+                {user.role === "owner" ? (
+                  <DropdownMenuItem onClick={() => router.push("/owner/rooms")}>
+                    <FileText className="w-4 h-4 mr-2" />
+                    Quản lý phòng trọ
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem onClick={() => router.push("/find-roomie/my-posts")}>
+                    <FileText className="w-4 h-4 mr-2" />
+                    Bài đăng của tôi
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="w-4 h-4 mr-2" />
                   Đăng xuất

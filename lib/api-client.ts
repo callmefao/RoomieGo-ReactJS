@@ -103,6 +103,7 @@ class ApiClient {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== null && value !== undefined && value !== '') {
           url.searchParams.append(key, String(value))
+          console.log(`  ✓ Added param: ${key}=${value}`)
         }
       })
     }

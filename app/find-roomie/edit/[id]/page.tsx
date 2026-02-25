@@ -20,6 +20,7 @@ import { findRoomieService } from "@/lib/findroomie-service"
 import { mapGenderToApi, mapOccupationToApi, mapLifestyleToApi, mapGenderFromApi, mapOccupationFromApi, mapLifestyleFromApi } from "@/lib/utils/findroomie-mapper"
 import MapLocationPicker from "@/components/MapLocationPicker"
 import DistrictSelector from "@/components/DistrictSelector"
+import ProtectedRoute from "@/components/ProtectedRoute"
 import { createPortal } from "react-dom"
 import { canthoUniversities } from "@/data/universities"
 import type { Gender, OccupationType, LifestyleType } from "@/types/roomie"
@@ -311,6 +312,7 @@ export default function EditRoomiePage() {
   }
 
   return (
+    <ProtectedRoute requireAuth={true}>
     <>
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Back Button */}
@@ -777,5 +779,6 @@ export default function EditRoomiePage() {
           document.body
         )}
     </>
+    </ProtectedRoute>
   )
 }

@@ -26,6 +26,25 @@ export default function RentalListingsPage() {
     const search = typeof currentFilters.search === "string" && currentFilters.search.trim() ? currentFilters.search.trim() : undefined
     const amenities = typeof currentFilters.amenities === "string" && currentFilters.amenities.trim() ? currentFilters.amenities.trim() : undefined
     const hasMezzanine = currentFilters.has_mezzanine
+    const district = typeof currentFilters.district === "string" && currentFilters.district.trim() ? currentFilters.district.trim() : undefined
+    const university = typeof currentFilters.university === "string" && currentFilters.university.trim() ? currentFilters.university.trim() : undefined
+
+    // District filter
+    if (district) {
+      const districtNames: Record<string, string> = {
+        'ninh-kieu': 'Ninh Kiều',
+        'cai-rang': 'Cái Răng',
+        'binh-thuy': 'Bình Thủy',
+        'o-mon': 'Ô Môn',
+        'phong-dien': 'Phong Điền',
+      }
+      highlights.push(`Quận/Huyện: ${districtNames[district] || district}`)
+    }
+
+    // University filter
+    if (university) {
+      highlights.push(`Gần trường: ${university.toUpperCase()}`)
+    }
 
     if (minPrice !== undefined && maxPrice !== undefined) {
       highlights.push(`Khoảng giá: ${currencyFormatter.format(minPrice)} - ${currencyFormatter.format(maxPrice)}`)
@@ -58,6 +77,8 @@ export default function RentalListingsPage() {
   // Convert URL search params to filters object
   const filters = {
     search: searchParams.get('search') || undefined,
+    district: searchParams.get('district') || undefined, // District slug
+    university: searchParams.get('university') || undefined, // University code
     min_price: searchParams.get('min_price') ? parseInt(searchParams.get('min_price')!) : undefined,
     max_price: searchParams.get('max_price') ? parseInt(searchParams.get('max_price')!) : undefined,
     latitude: searchParams.get('latitude') ? parseFloat(searchParams.get('latitude')!) : undefined,
