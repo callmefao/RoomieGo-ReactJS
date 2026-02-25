@@ -23,6 +23,7 @@ export default function AuthPage() {
   const router = useRouter()
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
+  const [rePassword, setRePassword] = useState("")
   const [email, setEmail] = useState("")
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
@@ -93,11 +94,19 @@ export default function AuthPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+    
+    // Validate password match
+    if (password !== rePassword) {
+      setError("Mật khẩu không khớp. Vui lòng kiểm tra lại.")
+      return
+    }
+    
     setIsLoading(true)
     try {
       const payload = {
         username: username,
         password: password,
+        re_password: rePassword,
         email: email,
         first_name: firstName,
         last_name: lastName,
@@ -324,6 +333,25 @@ export default function AuthPage() {
                 </div>
               </div>
 
+              {isRegister && (
+                <div className="space-y-2">
+                  <Label htmlFor="rePassword" className="text-sm font-semibold">Nhập lại mật khẩu</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/60" />
+                    <Input
+                      id="rePassword"
+                      type="password"
+                      placeholder="Nhập lại mật khẩu"
+                      value={rePassword}
+                      onChange={(e) => setRePassword(e.target.value)}
+                      required
+                      disabled={isLoading}
+                      className="pl-12 h-12 rounded-xl border-blue-200/60 focus:border-blue-500 focus:ring-blue-500/20 transition-all text-base bg-white/50"
+                    />
+                  </div>
+                </div>
+              )}
+
               <Button 
                 type="submit" 
                 className="w-full h-14 mt-6 text-lg rounded-full bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-600 hover:from-blue-600 hover:via-cyan-600 hover:to-blue-700 text-white font-semibold shadow-lg hover:shadow-xl hover:shadow-cyan-200/25 transition-all duration-300 hover:scale-[1.03] active:scale-95 hover:-translate-y-0.5" 
@@ -367,7 +395,11 @@ export default function AuthPage() {
                     Bạn đã có tài khoản?{" "}
                     <button 
                       className="text-blue-600 hover:text-blue-700 font-semibold underline underline-offset-2 transition-all duration-200 hover:underline-offset-4 hover:scale-105 inline-block" 
-                      onClick={() => setIsRegister(false)}
+                      onClick={() => {
+                        setIsRegister(false)
+                        setError("")
+                        setRePassword("")
+                      }}
                     >
                       Đăng nhập
                     </button>
@@ -377,7 +409,10 @@ export default function AuthPage() {
                     Chưa có tài khoản?{" "}
                     <button 
                       className="text-blue-600 hover:text-blue-700 font-semibold underline underline-offset-2 transition-all duration-200 hover:underline-offset-4 hover:scale-105 inline-block" 
-                      onClick={() => setIsRegister(true)}
+                      onClick={() => {
+                        setIsRegister(true)
+                        setError("")
+                      }}
                     >
                       Đăng ký ngay
                     </button>
