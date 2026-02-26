@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import Image from "next/image"
@@ -29,7 +29,6 @@ interface RentalListingsProps {
 
 export default function RentalListings({ initialFilters, filters }: RentalListingsProps) {
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 6
   const router = useRouter()
   
   // Build filters for API
@@ -42,6 +41,10 @@ export default function RentalListings({ initialFilters, filters }: RentalListin
     if (!baseFilters.status && !filters?.status) {
       baseFilters.status = 1 // Available rooms by default
     }
+    
+    // Add pagination
+    baseFilters.page = currentPage
+    baseFilters.page_size = 5 // 5 items per page
     
     if (!filters) {
       console.log("📤 RentalListings final API filters:", baseFilters)
@@ -79,10 +82,23 @@ export default function RentalListings({ initialFilters, filters }: RentalListin
     
     console.log("📤 RentalListings final API filters:", baseFilters)
     return baseFilters
-  }, [initialFilters, filters])
+  }, [initialFilters, filters, currentPage])
 
   // Use the custom hook to fetch rooms
   const { rooms, loading, error, totalCount, refetch } = useRooms(apiFilters)
+
+  // Reset to page 1 when filters change (excluding page parameter)
+  // Create a stable key from filters without page to detect real filter changes
+  const filtersKey = useMemo(() => {
+    const filtersWithoutPage = { ...apiFilters }
+    delete filtersWithoutPage.page
+    delete filtersWithoutPage.page_size
+    return JSON.stringify(filtersWithoutPage)
+  }, [apiFilters])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filtersKey])
 
   const hasSelectedFilters = useMemo(() => {
     const normalizeValue = (value: unknown) => {
@@ -118,13 +134,15 @@ export default function RentalListings({ initialFilters, filters }: RentalListin
     return hasExtraFilters || statusFiltered
   }, [apiFilters, filters?.status, initialFilters?.status])
 
-  // Calculate pagination
-  const totalPages = Math.ceil(totalCount / itemsPerPage)
+  // Calculate pagination based on backend data
+  // Using page size of 5 items per page
+  const itemsPerPage = 5
+  const totalPages = Math.ceil(totalCount / itemsPerPage) // Using 'count' field from API response
   const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = Math.min(startIndex + itemsPerPage, totalCount)
+  const endIndex = Math.min(startIndex + rooms.length, totalCount)
 
-  // Get current page items (rooms are already paginated by API, but we'll handle client-side for now)
-  const currentItems = rooms.slice(0, itemsPerPage)
+  // Rooms are already paginated by API - use them directly
+  const currentItems = rooms
 
   const handleCardClick = (room: Room) => {
     // Sử dụng generateRentalSlug để thống nhất với homepage
@@ -141,21 +159,20 @@ export default function RentalListings({ initialFilters, filters }: RentalListin
   const handlePreviousPage = () => {
     if (currentPage > 1) {
       setCurrentPage(prev => prev - 1)
-      // In a real implementation, you'd update the API filters with page parameter
-      // For now, we'll just update the current page
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }
 
   const handleNextPage = () => {
     if (currentPage < totalPages) {
       setCurrentPage(prev => prev + 1)
-      // In a real implementation, you'd update the API filters with page parameter
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }
 
   const handlePageClick = (page: number) => {
     setCurrentPage(page)
-    // In a real implementation, you'd update the API filters with page parameter
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   // Loading skeleton
@@ -446,9 +463,11 @@ export default function RentalListings({ initialFilters, filters }: RentalListin
         </div>
       )}
 
-      <div className="text-center text-sm text-muted-foreground">
-        Hiển thị {startIndex + 1}-{endIndex} của {totalCount} kết quả
-      </div>
+      {totalCount > 0 && (
+        <div className="text-center text-sm text-muted-foreground">
+          Hiển thị {startIndex + 1}-{endIndex} của {totalCount} kết quả
+        </div>
+      )}
     </div>
   )
 }

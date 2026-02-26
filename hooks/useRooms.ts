@@ -65,7 +65,36 @@ export function useRooms(filters?: RoomFilters): UseRoomsResult {
   const [hasNext, setHasNext] = useState(false)
   const [hasPrevious, setHasPrevious] = useState(false)
 
-  const fetchRooms = useCallback(async () => {
+  // Create stable dependency key from filters to trigger refetch when filters change
+  const filtersKey = JSON.stringify(filters || {})
+
+  useEffect(() => {
+    const fetchRooms = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        console.log('🔄 useRooms fetching with filters:', filters)
+        const response: RoomsResponse = await RoomsService.getRooms(filters)
+        
+        console.log('✅ useRooms received:', response.results.length, 'rooms, page:', filters?.page)
+        setRooms(response.results)
+        setTotalCount(response.count)
+        setHasNext(!!response.next)
+        setHasPrevious(!!response.previous)
+        
+      } catch (err: any) {
+        setError(err.message || 'Failed to fetch rooms')
+        setRooms([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchRooms()
+  }, [filtersKey])
+
+  const refetch = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -83,11 +112,7 @@ export function useRooms(filters?: RoomFilters): UseRoomsResult {
     } finally {
       setLoading(false)
     }
-  }, [filters])
-
-  useEffect(() => {
-    fetchRooms()
-  }, [fetchRooms])
+  }, [filtersKey])
 
   return {
     rooms,
@@ -96,7 +121,7 @@ export function useRooms(filters?: RoomFilters): UseRoomsResult {
     totalCount,
     hasNext,
     hasPrevious,
-    refetch: fetchRooms
+    refetch
   }
 }
 

@@ -85,8 +85,32 @@ export default function FilterSidebar() {
     setFilters((prev) => ({
       ...prev,
       location,
+      // Clear district when selecting GPS location
+      district: undefined,
+      districtSlug: undefined,
+      university: undefined,
     }))
     setShowLocationPicker(false)
+  }
+
+  const handleClearLocation = () => {
+    setFilters((prev) => ({
+      ...prev,
+      location: {
+        address: "",
+        coordinates: [0, 0],
+        radius: 2,
+      },
+    }))
+  }
+
+  const handleClearDistrict = () => {
+    setFilters((prev) => ({
+      ...prev,
+      district: undefined,
+      districtSlug: undefined,
+      university: undefined,
+    }))
   }
 
   const handlePriceRangeChange = (values: number[]) => {
@@ -214,6 +238,9 @@ export default function FilterSidebar() {
             <div className="space-y-3">
               <Label className="text-base font-semibold flex items-center gap-2">
                 📍 Quận/Huyện
+                {filters.location.address && (
+                  <span className="text-xs text-muted-foreground font-normal">(Đã chọn GPS)</span>
+                )}
               </Label>
               <DistrictSelector
                 value={filters.district}
@@ -223,10 +250,27 @@ export default function FilterSidebar() {
                     district: id,
                     districtSlug: slug,
                     university: undefined, // Reset university khi đổi district
+                    // Clear GPS location when selecting district
+                    location: {
+                      address: "",
+                      coordinates: [0, 0],
+                      radius: 2,
+                    },
                   }))
                 }}
                 className="w-full"
+                disabled={!!filters.location.address}
               />
+              {filters.district && !filters.location.address && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearDistrict}
+                  className="w-full text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                >
+                  ✕ Huỷ chọn quận/huyện
+                </Button>
+              )}
             </div>
 
             {filters.district && (
@@ -254,7 +298,12 @@ export default function FilterSidebar() {
 
           {/* Address Filter */}
           <div className="space-y-3 p-3 rounded-lg hover:bg-muted/30 transition-colors duration-200">
-            <Label className="text-base font-semibold cursor-default">Địa chỉ GPS (tùy chọn)</Label>
+            <Label className="text-base font-semibold cursor-default">
+              Địa chỉ GPS (tùy chọn)
+              {filters.district && (
+                <span className="text-xs text-muted-foreground font-normal ml-2">(Đã chọn Quận/Huyện)</span>
+              )}
+            </Label>
             <div className="space-y-2">
               {filters.location.address ? (
                 <>
@@ -262,16 +311,29 @@ export default function FilterSidebar() {
                   <div className="text-sm text-muted-foreground cursor-default hover:text-foreground transition-colors duration-200">Bán kính: {filters.location.radius}km</div>
                 </>
               ) : (
-                <div className="text-sm text-muted-foreground italic cursor-default hover:text-foreground transition-colors duration-200">Chưa chọn vị trí cụ thể</div>
+                <div className="text-sm text-muted-foreground italic cursor-default hover:text-foreground transition-colors duration-200">
+                  {filters.district ? "Đã chọn quận/huyện, không thể chọn GPS" : "Chưa chọn vị trí cụ thể"}
+                </div>
               )}
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={() => setShowLocationPicker(true)} 
                 className="w-full cursor-pointer hover:scale-105 hover:shadow-md transition-all duration-300 active:scale-95"
+                disabled={!!filters.district}
               >
                 {filters.location.address ? "Thay đổi vị trí" : "Chọn vị trí trên bản đồ"}
               </Button>
+              {filters.location.address && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearLocation}
+                  className="w-full text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                >
+                  ✕ Huỷ chọn địa chỉ GPS
+                </Button>
+              )}
             </div>
           </div>
 

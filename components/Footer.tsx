@@ -30,7 +30,7 @@ export default function Footer() {
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <Phone className="w-4 h-4 text-primary flex-shrink-0" />
-                <span className="text-sm text-muted-foreground">CSKH: 0852724232</span>
+                <span className="text-sm text-muted-foreground">CSKH: 085 272 4237</span>
               </div>
               <div className="flex items-center gap-3">
                 <Mail className="w-4 h-4 text-primary flex-shrink-0" />
@@ -53,7 +53,7 @@ export default function Footer() {
             <div className="flex gap-4">
               {/* Facebook */}
               <a
-                href="https://www.facebook.com/profile.php?id=61580832382391"
+                href="https://www.facebook.com/share/1AcE39PrV2/?mibextid=wwXIfr"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-2 rounded-lg bg-background border border-border hover:border-primary transition-colors"

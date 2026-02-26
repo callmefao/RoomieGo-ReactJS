@@ -81,11 +81,8 @@ export default function AuthPage() {
       }
     } catch (err: any) {
       console.error("Login error:", err)
-      if (err.details?.detail) {
-        setError(err.details.detail)
-      } else {
-        setError("Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.")
-      }
+      const errorMessage = parseApiError(err)
+      setError(errorMessage || "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.")
     } finally {
       setIsLoading(false)
     }
@@ -233,7 +230,9 @@ export default function AuthPage() {
             <form onSubmit={isRegister ? handleRegister : handleLogin} className="space-y-5">
               {error && (
                 <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
+                  <AlertDescription className="whitespace-pre-line">
+                    {error}
+                  </AlertDescription>
                 </Alert>
               )}
 

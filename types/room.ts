@@ -105,6 +105,8 @@ export interface RoomFilters {
   max_people?: number
   search?: string
   ordering?: 'price' | '-price' | 'area' | '-area' | 'created_at' | '-created_at'
+  page?: number // Pagination page number
+  page_size?: number // Number of items per page
   
   // Location filters (from locations app)
   district?: string | number // District slug or ID (e.g., "ninh-kieu" or 1)
