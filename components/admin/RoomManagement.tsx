@@ -8,10 +8,11 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Layers, MapPin, Eye, Search } from "lucide-react"
+import { Layers, MapPin, Eye, Search, Plus, Pencil } from "lucide-react"
 import RoomsService from "@/lib/rooms-service"
 import type { Room } from "@/types/room"
 import RoomDetailDialog from "@/components/admin/PendingRoomDetailDialog"
+import RoomFormDialog from "@/components/admin/RoomFormDialog"
 import { useErrorOverlay } from "@/components/ErrorOverlayProvider"
 import { formatAmenities } from "@/utils/room-helpers"
 
@@ -25,6 +26,8 @@ export default function RoomManagement() {
   const [detailOpen, setDetailOpen] = useState(false)
   const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null)
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null)
+  const [formOpen, setFormOpen] = useState(false)
+  const [editingRoom, setEditingRoom] = useState<Room | undefined>(undefined)
   const { showError } = useErrorOverlay()
 
   const fetchRooms = useCallback(async () => {
@@ -88,6 +91,20 @@ export default function RoomManagement() {
     }
   }, [])
 
+  const handleCreateRoom = useCallback(() => {
+    setEditingRoom(undefined)
+    setFormOpen(true)
+  }, [])
+
+  const handleEditRoom = useCallback((room: Room) => {
+    setEditingRoom(room)
+    setFormOpen(true)
+  }, [])
+
+  const handleFormSuccess = useCallback(() => {
+    fetchRooms() // Refresh room list
+  }, [fetchRooms])
+
   const resolveCoverImage = useCallback((room: Room) => {
     const mainImage = RoomsService.getRoomMainImage(room)
     return RoomsService.getValidImageUrl(mainImage)
@@ -99,8 +116,16 @@ export default function RoomManagement() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Quản lý phòng</CardTitle>
-        <CardDescription>Theo dõi và cập nhật thông tin các phòng đang hoạt động</CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Quản lý phòng</CardTitle>
+            <CardDescription>Theo dõi và cập nhật thông tin các phòng đang hoạt động</CardDescription>
+          </div>
+          <Button onClick={handleCreateRoom} className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Thêm phòng
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-col md:flex-row gap-4">
@@ -225,9 +250,24 @@ export default function RoomManagement() {
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button size="sm" variant="secondary" onClick={() => handleViewDetails(room)}>
-                          Xem chi tiết
-                        </Button>
+                        <div className="flex items-center justify-end gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => handleEditRoom(room)}
+                            className="flex items-center gap-1"
+                          >
+                            <Pencil className="h-3 w-3" />
+                            Sửa
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="secondary" 
+                            onClick={() => handleViewDetails(room)}
+                          >
+                            Xem chi tiết
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   )
@@ -241,6 +281,7 @@ export default function RoomManagement() {
           Đang hiển thị {filteredRooms.length}/{totalRooms} phòng
         </div>
       </CardContent>
+      
       <RoomDetailDialog
         open={detailOpen}
         onOpenChange={handleDialogOpenChange}
@@ -248,6 +289,13 @@ export default function RoomManagement() {
         fallbackRoom={selectedRoom || undefined}
         onAfterUpload={fetchRooms}
         context="active"
+      />
+      
+      <RoomFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        room={editingRoom}
+        onSuccess={handleFormSuccess}
       />
     </Card>
   )
