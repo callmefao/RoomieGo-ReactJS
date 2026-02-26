@@ -124,6 +124,33 @@ export default function RoomFormDialog({ open, onOpenChange, room, onSuccess }: 
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
+  // Validate and limit coordinate digits
+  const validateCoordinate = (value: string, maxDigits: number): number | undefined => {
+    if (!value || value === '') return undefined
+    
+    const numValue = parseFloat(value)
+    if (isNaN(numValue)) return undefined
+    
+    // Remove decimal point and minus sign to count total digits
+    const digitCount = value.replace(/[.-]/g, '').length
+    
+    if (digitCount > maxDigits) {
+      return undefined // Reject if too many digits
+    }
+    
+    return numValue
+  }
+
+  const handleCoordinateChange = (field: 'latitude' | 'longitude', value: string) => {
+    const maxDigits = field === 'latitude' ? 10 : 11
+    const validatedValue = validateCoordinate(value, maxDigits)
+    
+    if (value === '' || validatedValue !== undefined) {
+      handleInputChange(field, validatedValue)
+    }
+    // If invalid, don't update (reject the input)
+  }
+
   const handleAmenityToggle = (amenityId: number) => {
     setSelectedAmenities(prev => 
       prev.includes(amenityId) 
@@ -154,11 +181,26 @@ export default function RoomFormDialog({ open, onOpenChange, room, onSuccess }: 
   }
 
   const handleLocationSelect = (location: { address: string; coordinates: [number, number]; radius: number }) => {
+    // Limit latitude to 10 digits, longitude to 11 digits
+    const formatCoordinate = (value: number, maxDigits: number): number => {
+      const str = value.toString()
+      const digitCount = str.replace(/[.-]/g, '').length
+      
+      if (digitCount <= maxDigits) return value
+      
+      // Truncate to fit maxDigits
+      const [intPart, decPart] = str.split('.')
+      const intDigits = intPart.replace('-', '').length
+      const allowedDecDigits = Math.max(0, maxDigits - intDigits)
+      
+      return parseFloat(`${intPart}.${decPart?.substring(0, allowedDecDigits) || '0'}`)
+    }
+    
     setFormData(prev => ({
       ...prev,
       location: location.address,
-      latitude: location.coordinates[0],
-      longitude: location.coordinates[1],
+      latitude: formatCoordinate(location.coordinates[0], 10),
+      longitude: formatCoordinate(location.coordinates[1], 11),
     }))
     setShowMapPicker(false)
   }
@@ -325,14 +367,14 @@ export default function RoomFormDialog({ open, onOpenChange, room, onSuccess }: 
                     <div className="space-y-2">
                       <Label htmlFor="latitude">
                         Vĩ độ (Latitude)
-                        <span className="ml-1 text-xs text-muted-foreground">- Tự động từ bản đồ</span>
+                        <span className="ml-1 text-xs text-muted-foreground">- Max 10 chữ số</span>
                       </Label>
                       <Input
                         id="latitude"
                         type="number"
                         step="0.000001"
                         value={formData.latitude || ''}
-                        onChange={(e) => handleInputChange('latitude', e.target.value ? parseFloat(e.target.value) : undefined)}
+                        onChange={(e) => handleCoordinateChange('latitude', e.target.value)}
                         placeholder="10.762622"
                       />
                     </div>
@@ -340,14 +382,14 @@ export default function RoomFormDialog({ open, onOpenChange, room, onSuccess }: 
                     <div className="space-y-2">
                       <Label htmlFor="longitude">
                         Kinh độ (Longitude)
-                        <span className="ml-1 text-xs text-muted-foreground">- Tự động từ bản đồ</span>
+                        <span className="ml-1 text-xs text-muted-foreground">- Max 11 chữ số</span>
                       </Label>
                       <Input
                         id="longitude"
                         type="number"
                         step="0.000001"
                         value={formData.longitude || ''}
-                        onChange={(e) => handleInputChange('longitude', e.target.value ? parseFloat(e.target.value) : undefined)}
+                        onChange={(e) => handleCoordinateChange('longitude', e.target.value)}
                         placeholder="106.660172"
                       />
                     </div>
