@@ -309,11 +309,52 @@ export default function RoomFormDialog({ open, onOpenChange, room, onSuccess }: 
                         variant="outline"
                         size="icon"
                         onClick={() => setShowMapPicker(true)}
+                        title="Chọn vị trí trên bản đồ"
                       >
                         <MapPin className="h-4 w-4" />
                       </Button>
                     </div>
+                    {formData.latitude && formData.longitude && (
+                      <p className="text-xs text-muted-foreground">
+                        📍 Tọa độ: {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
+                      </p>
+                    )}
                   </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="latitude">
+                        Vĩ độ (Latitude)
+                        <span className="ml-1 text-xs text-muted-foreground">- Tự động từ bản đồ</span>
+                      </Label>
+                      <Input
+                        id="latitude"
+                        type="number"
+                        step="0.000001"
+                        value={formData.latitude || ''}
+                        onChange={(e) => handleInputChange('latitude', e.target.value ? parseFloat(e.target.value) : undefined)}
+                        placeholder="10.762622"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="longitude">
+                        Kinh độ (Longitude)
+                        <span className="ml-1 text-xs text-muted-foreground">- Tự động từ bản đồ</span>
+                      </Label>
+                      <Input
+                        id="longitude"
+                        type="number"
+                        step="0.000001"
+                        value={formData.longitude || ''}
+                        onChange={(e) => handleInputChange('longitude', e.target.value ? parseFloat(e.target.value) : undefined)}
+                        placeholder="106.660172"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    💡 Tip: Click icon <MapPin className="inline h-3 w-3" /> bên cạnh địa chỉ để chọn vị trí trên bản đồ và tự động điền tọa độ
+                  </p>
 
                   <div className="space-y-2">
                     <Label>Quận/Huyện</Label>
