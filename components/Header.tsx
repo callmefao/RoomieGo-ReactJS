@@ -90,14 +90,6 @@ export default function Header() {
               variant="ghost"
               size="sm"
               className="text-slate-700 hover:bg-blue-50 hover:text-blue-600 border-transparent hover:border-blue-200 hover:shadow-sm cursor-pointer transition-all duration-200 rounded-lg"
-              onClick={() => (window.location.href = "#combo")}
-            >
-              Combo
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-slate-700 hover:bg-blue-50 hover:text-blue-600 border-transparent hover:border-blue-200 hover:shadow-sm cursor-pointer transition-all duration-200 rounded-lg"
               onClick={() => router.push("/transport-services")}
             >
               Dịch vụ vận chuyển
