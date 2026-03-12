@@ -1,6 +1,7 @@
 import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
+import Script from "next/script"
 import "./globals.css"
 import Header from "@/components/Header"
 import ErrorOverlayProvider from "@/components/ErrorOverlayProvider"
@@ -30,6 +31,20 @@ export default function RootLayout({
 }) {
   return (
     <html lang="vi" className={inter.variable}>
+      <head>
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-HBXHX7GCJR"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-HBXHX7GCJR');
+          `}
+        </Script>
+      </head>
       <body className="font-sans antialiased bg-gradient-to-br from-slate-50 via-blue-50/30 to-cyan-50/20 min-h-screen">
         <GoogleAuthProvider>
           <ErrorOverlayProvider>
